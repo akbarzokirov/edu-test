@@ -3,13 +3,23 @@ import { useAuth } from "../context/AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
 import Login from "../pages/Login";
 import NotFound from "../pages/NotFound";
+
 import AdminLayout from "../components/layout/AdminLayout";
-import Dashboard from "../pages/admin/Dashboard";
-import Teachers from "../pages/admin/Teachers";
-import Students from "../pages/admin/Students";
+import AdminDashboard from "../pages/admin/Dashboard";
+import AdminTeachers from "../pages/admin/Teachers";
+import AdminStudents from "../pages/admin/Students";
+
+import TeacherLayout from "../components/layout/TeacherLayout";
+import TeacherDashboard from "../pages/teacher/Dashboard";
+import TeacherGroups from "../pages/teacher/Groups";
+import TeacherStudents from "../pages/teacher/Students";
+import TeacherSemesters from "../pages/teacher/Semesters";
+import TeacherResults from "../pages/teacher/Results";
+import TeacherSettings from "../pages/teacher/Settings";
 
 const AppRoutes = () => {
   const { user } = useAuth();
+
   const homeRoute = () => {
     if (!user) return "/login";
     if (user.role === "ADMIN") return "/admin";
@@ -21,34 +31,59 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Navigate to={homeRoute()} replace />} />
-      <Route path="/login" element={user ? <Navigate to={homeRoute()} replace /> : <Login />} />
-      <Route path="/admin" element={
-        <ProtectedRoute allowedRoles={["ADMIN"]}><AdminLayout /></ProtectedRoute>
-      }>
-        <Route index element={<Dashboard />} />
-        <Route path="teachers" element={<Teachers />} />
-        <Route path="students" element={<Students />} />
+      <Route
+        path="/login"
+        element={user ? <Navigate to={homeRoute()} replace /> : <Login />}
+      />
+
+      {/* ADMIN */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<AdminDashboard />} />
+        <Route path="teachers" element={<AdminTeachers />} />
+        <Route path="students" element={<AdminStudents />} />
       </Route>
-      <Route path="/teacher" element={
-        <ProtectedRoute allowedRoles={["TEACHER"]}>
-          <div className="min-h-screen flex items-center justify-center p-6 text-center">
-            <div>
-              <p className="text-lg font-semibold">Teacher Panel</p>
-              <p className="text-ink-500 mt-2">Keyingi bosqichda tayyorlanadi</p>
+
+      {/* TEACHER */}
+      <Route
+        path="/teacher"
+        element={
+          <ProtectedRoute allowedRoles={["TEACHER"]}>
+            <TeacherLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<TeacherDashboard />} />
+        <Route path="groups" element={<TeacherGroups />} />
+        <Route path="students" element={<TeacherStudents />} />
+        <Route path="semesters" element={<TeacherSemesters />} />
+        <Route path="results" element={<TeacherResults />} />
+        <Route path="settings" element={<TeacherSettings />} />
+      </Route>
+
+      {/* STUDENT — placeholder */}
+      <Route
+        path="/student"
+        element={
+          <ProtectedRoute allowedRoles={["STUDENT"]}>
+            <div className="min-h-screen flex items-center justify-center p-6 text-center">
+              <div>
+                <p className="text-lg font-semibold">Student Panel</p>
+                <p className="text-ink-500 mt-2">
+                  Keyingi bosqichda tayyorlanadi
+                </p>
+              </div>
             </div>
-          </div>
-        </ProtectedRoute>
-      } />
-      <Route path="/student" element={
-        <ProtectedRoute allowedRoles={["STUDENT"]}>
-          <div className="min-h-screen flex items-center justify-center p-6 text-center">
-            <div>
-              <p className="text-lg font-semibold">Student Panel</p>
-              <p className="text-ink-500 mt-2">Keyingi bosqichda tayyorlanadi</p>
-            </div>
-          </div>
-        </ProtectedRoute>
-      } />
+          </ProtectedRoute>
+        }
+      />
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
