@@ -1,24 +1,22 @@
 import { useEffect, useState } from "react";
-import { User, Mail, Phone, RefreshCw } from "lucide-react";
+import { User, Mail, Lock, Plus, X, BookOpen, Lightbulb } from "lucide-react";
 import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
-import { cn, generatePassword, generateUsername } from "../../utils/helpers";
-import { SUBJECTS, mockGroups } from "../../utils/mockData";
+import { cn } from "../../utils/helpers";
 
 const emptyForm = {
   fullName: "",
   email: "",
-  phone: "",
   subject: "",
-  groups: [],
-  username: "",
+  groups: [], // Bu yerda guruh nomlari saqlanadi
   password: "",
 };
 
 const TeacherFormModal = ({ open, onClose, onSave, teacher }) => {
   const isEdit = Boolean(teacher);
   const [form, setForm] = useState(emptyForm);
+  const [groupInput, setGroupInput] = useState("");
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -28,14 +26,12 @@ const TeacherFormModal = ({ open, onClose, onSave, teacher }) => {
       setForm({
         fullName: teacher.fullName || "",
         email: teacher.email || "",
-        phone: teacher.phone || "",
         subject: teacher.subject || "",
-        groups: teacher.groups || [],
-        username: teacher.username || "",
+        groups: teacher.taughtGroups?.map(g => g.name) || [],
         password: "",
       });
     } else {
-      setForm({ ...emptyForm });
+      setForm(emptyForm);
     }
     setErrors({});
   }, [open, teacher]);
@@ -45,34 +41,26 @@ const TeacherFormModal = ({ open, onClose, onSave, teacher }) => {
     if (errors[k]) setErrors((e) => ({ ...e, [k]: null }));
   };
 
-  const toggleGroup = (id) => {
-    setForm((f) => ({
-      ...f,
-      groups: f.groups.includes(id)
-        ? f.groups.filter((g) => g !== id)
-        : [...f.groups, id],
-    }));
+  const addGroup = () => {
+    if (!groupInput.trim()) return;
+    if (!form.groups.includes(groupInput.trim())) {
+      update("groups", [...form.groups, groupInput.trim()]);
+    }
+    setGroupInput("");
   };
 
-  const autoUsername = () => {
-    const u = generateUsername(form.fullName);
-    update("username", u);
+  const removeGroup = (name) => {
+    update("groups", form.groups.filter(g => g !== name));
   };
-
-  const autoPassword = () => update("password", generatePassword(10));
 
   const validate = () => {
     const e = {};
-    if (!form.fullName.trim()) e.fullName = "Ism kiriting";
+    if (!form.fullName.trim()) e.fullName = "Ism Familiya kiriting";
+    if (!form.subject.trim()) e.subject = "Fan nomini kiriting";
     if (!form.email.trim()) e.email = "Email kiriting";
-    else if (!/^\S+@\S+\.\S+$/.test(form.email)) e.email = "Email noto'g'ri";
-    if (!form.subject) e.subject = "Fan tanlang";
-    if (form.groups.length === 0) e.groups = "Kamida bitta guruh tanlang";
-    if (!isEdit) {
-      if (!form.username.trim()) e.username = "Login kiriting";
-      if (!form.password) e.password = "Parol kiriting";
-      else if (form.password.length < 6) e.password = "Kamida 6 ta belgi";
-    }
+    if (!isEdit && !form.password) e.password = "Parol kiriting";
+    else if (!isEdit && form.password.length < 6) e.password = "Kamida 6 belgi";
+    
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -80,8 +68,9 @@ const TeacherFormModal = ({ open, onClose, onSave, teacher }) => {
   const handleSubmit = async () => {
     if (!validate()) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 500));
-    onSave(form);
+    // Backendga yuborishda guruh nomlarini groupId larga o'tkazish logikasi kerak bo'lishi mumkin
+    // Hozircha form ma'lumotlarini uzatamiz
+    await onSave(form);
     setLoading(false);
   };
 
@@ -89,189 +78,154 @@ const TeacherFormModal = ({ open, onClose, onSave, teacher }) => {
     <Modal
       open={open}
       onClose={loading ? undefined : onClose}
-      size="2xl"
-      title={isEdit ? "O'qituvchini tahrirlash" : "Yangi o'qituvchi qo'shish"}
-      description={
-        isEdit
-          ? "O'qituvchi ma'lumotlarini yangilang."
-          : "Yangi o'qituvchini tizimga qo'shing va unga login ma'lumotlarini bering."
-      }
+      size="lg"
+      title={isEdit ? "O'qituvchini Tahrirlash" : "Yangi O'qituvchi Qo'shish"}
       footer={
-        <>
-          <Button variant="secondary" onClick={onClose} disabled={loading}>
-            Bekor qilish
+        <div className="flex gap-3 w-full">
+          <Button 
+            variant="secondary" 
+            onClick={onClose} 
+            disabled={loading}
+            className="flex-1 py-3"
+          >
+            Bekor
           </Button>
-          <Button variant="brand" onClick={handleSubmit} loading={loading}>
+          <Button 
+            variant="brand" 
+            onClick={handleSubmit} 
+            loading={loading}
+            className="flex-1 py-3 bg-brand-600 hover:bg-brand-700"
+          >
             {isEdit ? "Saqlash" : "Yaratish"}
           </Button>
-        </>
+        </div>
       }
     >
-      <div className="space-y-5">
-        <Section title="Shaxsiy ma'lumotlar">
-          <Input
-            label="To'liq ism"
-            icon={User}
-            value={form.fullName}
-            onChange={(e) => update("fullName", e.target.value)}
-            placeholder="Masalan: Nargiza Saidova"
-            error={errors.fullName}
+      <div className="space-y-6 pb-2">
+        {/* Ism Familiya */}
+        <div className="space-y-1.5">
+          <label className="text-[15px] font-semibold text-ink-900 flex items-center gap-1">
+            Ism Familiya <span className="text-danger-500">*</span>
+          </label>
+          <div className="relative group">
+            <input
+              value={form.fullName}
+              onChange={(e) => update("fullName", e.target.value)}
+              placeholder="Abdullayev Jasur"
+              className={cn(
+                "w-full px-4 py-3 rounded-xl border border-ink-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-50 transition-all outline-none text-[15px]",
+                errors.fullName && "border-danger-300 ring-danger-50"
+              )}
+            />
+          </div>
+          {errors.fullName && <p className="text-xs text-danger-600">{errors.fullName}</p>}
+        </div>
+
+        {/* Fan Nomi */}
+        <div className="space-y-1.5">
+          <label className="text-[15px] font-semibold text-ink-900">
+            Fan Nomi <span className="text-danger-500">*</span>
+          </label>
+          <input
+            value={form.subject}
+            onChange={(e) => update("subject", e.target.value)}
+            placeholder="Matematika, Fizika, Ingliz tili..."
+            className={cn(
+              "w-full px-4 py-3 rounded-xl border border-ink-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-50 transition-all outline-none text-[15px]",
+              errors.subject && "border-danger-300 ring-danger-50"
+            )}
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input
-              label="Email"
-              type="email"
-              icon={Mail}
-              value={form.email}
-              onChange={(e) => update("email", e.target.value)}
-              placeholder="name@edutest.uz"
-              error={errors.email}
+          {errors.subject && <p className="text-xs text-danger-600">{errors.subject}</p>}
+        </div>
+
+        {/* Guruhlar */}
+        <div className="space-y-1.5">
+          <label className="text-[15px] font-semibold text-ink-900">
+            Boshqaradigan Guruhlar <span className="text-danger-500">*</span>
+          </label>
+          <div className="flex gap-2">
+            <input
+              value={groupInput}
+              onChange={(e) => setGroupInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addGroup()}
+              placeholder="Guruh nomi (1-A, MT-22, ...)"
+              className="flex-1 px-4 py-3 rounded-xl border border-ink-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-50 transition-all outline-none text-[15px]"
             />
-            <Input
-              label="Telefon"
-              icon={Phone}
-              value={form.phone}
-              onChange={(e) => update("phone", e.target.value)}
-              placeholder="+998 __ ___ __ __"
-            />
+            <button
+              type="button"
+              onClick={addGroup}
+              className="w-[52px] h-[52px] rounded-xl bg-brand-600 text-white flex items-center justify-center hover:bg-brand-700 active:scale-95 transition-all shadow-md shadow-brand-100"
+            >
+              <Plus className="w-6 h-6" strokeWidth={3} />
+            </button>
           </div>
-        </Section>
-
-        <Section title="O'qitadigan fan">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {SUBJECTS.map((s) => {
-              const active = form.subject === s;
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => update("subject", s)}
-                  className={cn(
-                    "px-3 py-2 rounded-lg border text-sm font-medium transition",
-                    active
-                      ? "bg-brand-50 border-brand-200 text-brand-700"
-                      : "bg-white border-ink-200 text-ink-700 hover:border-ink-300 hover:bg-ink-50"
-                  )}
-                >
-                  {s}
-                </button>
-              );
-            })}
-          </div>
-          {errors.subject && (
-            <p className="mt-1.5 text-xs text-danger-600">{errors.subject}</p>
+          <p className="text-[13px] text-ink-400">Guruh nomini yozing va + tugmasini bosing</p>
+          
+          {/* Tanlangan guruhlar listi */}
+          {form.groups.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {form.groups.map((g) => (
+                <div key={g} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 text-brand-700 rounded-lg text-sm font-medium border border-brand-100">
+                  {g}
+                  <button onClick={() => removeGroup(g)} className="hover:text-danger-600">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
-        </Section>
+        </div>
 
-        <Section title="Guruhlar" description="Bir nechta guruh tanlashingiz mumkin">
-          <div className="flex flex-wrap gap-2">
-            {mockGroups.map((g) => {
-              const active = form.groups.includes(g.id);
-              return (
-                <button
-                  key={g.id}
-                  type="button"
-                  onClick={() => toggleGroup(g.id)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-full border text-xs font-medium transition",
-                    active
-                      ? "bg-brand-600 border-brand-600 text-white"
-                      : "bg-white border-ink-200 text-ink-700 hover:border-ink-300"
-                  )}
-                >
-                  {g.name}
-                </button>
-              );
-            })}
-          </div>
-          {errors.groups && (
-            <p className="mt-2 text-xs text-danger-600">{errors.groups}</p>
-          )}
-        </Section>
+        {/* Email */}
+        <div className="space-y-1.5">
+          <label className="text-[15px] font-semibold text-ink-900">
+            Email <span className="text-danger-500">*</span>
+          </label>
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e) => update("email", e.target.value)}
+            placeholder="teacher@email.com"
+            className={cn(
+              "w-full px-4 py-3 rounded-xl border border-ink-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-50 transition-all outline-none text-[15px]",
+              errors.email && "border-danger-300 ring-danger-50"
+            )}
+          />
+          {errors.email && <p className="text-xs text-danger-600">{errors.email}</p>}
+        </div>
 
+        {/* Parol */}
         {!isEdit && (
-          <div className="bg-brand-50 border border-brand-100 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h4 className="font-semibold text-ink-900 text-sm">
-                  Login ma'lumotlari
-                </h4>
-                <p className="text-xs text-ink-500">
-                  O'qituvchi bu ma'lumotlar bilan tizimga kiradi
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm font-medium text-ink-700">Login</label>
-                  <button
-                    type="button"
-                    onClick={autoUsername}
-                    className="text-xs text-brand-600 font-medium hover:text-brand-700 inline-flex items-center gap-1"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    Avto
-                  </button>
-                </div>
-                <input
-                  value={form.username}
-                  onChange={(e) => update("username", e.target.value)}
-                  placeholder="n.saidova"
-                  className={cn(
-                    "input-base",
-                    errors.username &&
-                      "border-danger-300 focus:border-danger-500 focus:ring-danger-100"
-                  )}
-                />
-                {errors.username && (
-                  <p className="mt-1 text-xs text-danger-600">{errors.username}</p>
-                )}
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm font-medium text-ink-700">Parol</label>
-                  <button
-                    type="button"
-                    onClick={autoPassword}
-                    className="text-xs text-brand-600 font-medium hover:text-brand-700 inline-flex items-center gap-1"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    Generatsiya
-                  </button>
-                </div>
-                <input
-                  value={form.password}
-                  onChange={(e) => update("password", e.target.value)}
-                  placeholder="Kamida 6 ta belgi"
-                  className={cn(
-                    "input-base font-mono",
-                    errors.password &&
-                      "border-danger-300 focus:border-danger-500 focus:ring-danger-100"
-                  )}
-                />
-                {errors.password && (
-                  <p className="mt-1 text-xs text-danger-600">{errors.password}</p>
-                )}
-              </div>
-            </div>
+          <div className="space-y-1.5">
+            <label className="text-[15px] font-semibold text-ink-900">
+              Parol <span className="text-danger-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={form.password}
+              onChange={(e) => update("password", e.target.value)}
+              placeholder="Kamida 6 belgi"
+              className={cn(
+                "w-full px-4 py-3 rounded-xl border border-ink-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-50 transition-all outline-none text-[15px]",
+                errors.password && "border-danger-300 ring-danger-50"
+              )}
+            />
+            {errors.password && <p className="text-xs text-danger-600">{errors.password}</p>}
           </div>
         )}
+
+        {/* Info box */}
+        <div className="p-4 rounded-xl bg-brand-50/50 border border-brand-100 flex gap-3">
+          <div className="w-5 h-5 rounded-full bg-warning-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-[10px]">💡</span>
+          </div>
+          <p className="text-[13px] text-brand-700 leading-relaxed font-medium">
+            O'qituvchi faqat belgilangan guruhlardagi talabalarni ko'ra va boshqara oladi
+          </p>
+        </div>
       </div>
     </Modal>
   );
 };
-
-const Section = ({ title, description, children }) => (
-  <div>
-    <div className="mb-3">
-      <h4 className="font-semibold text-sm text-ink-900">{title}</h4>
-      {description && (
-        <p className="text-xs text-ink-500 mt-0.5">{description}</p>
-      )}
-    </div>
-    <div className="space-y-3">{children}</div>
-  </div>
-);
 
 export default TeacherFormModal;

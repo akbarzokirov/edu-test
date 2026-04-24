@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { User as UserIcon, Lock, Eye, EyeOff, Sparkles, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import api from "../api/axios";
 
 const Login = () => {
   const { login } = useAuth();
@@ -14,31 +15,32 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.username || !form.password) {
-      toast.error("Login va parolni kiriting");
+      toast.error("Email va parolni kiriting");
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 700));
 
-    let role = "ADMIN";
-    let fullName = "Admin Foydalanuvchi";
-    const u = form.username.toLowerCase();
-    if (u.includes("teacher") || u.includes("ustoz")) {
-      role = "TEACHER"; fullName = "O'qituvchi";
-    } else if (u.includes("student") || u.includes("oquvchi")) {
-      role = "STUDENT"; fullName = "O'quvchi";
+    try {
+      const response = await api.post("/auth/login", {
+        email: form.username,
+        password: form.password,
+      });
+
+      const { user, token } = response.data;
+      
+      login(user, token);
+      toast.success(`Xush kelibsiz, ${user.fullName}!`);
+
+      const role = user.role.toUpperCase();
+      if (role === "ADMIN") navigate("/admin");
+      else if (role === "TEACHER") navigate("/teacher");
+      else navigate("/student");
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error(error.response?.data?.message || "Login yoki parol noto'g'ri");
+    } finally {
+      setLoading(false);
     }
-
-    login(
-      { id: 1, fullName, username: form.username, email: `${form.username}@edutest.uz`, role },
-      "mock-jwt-token"
-    );
-    toast.success(`Xush kelibsiz, ${fullName}!`);
-    setLoading(false);
-
-    if (role === "ADMIN") navigate("/admin");
-    else if (role === "TEACHER") navigate("/teacher");
-    else navigate("/student");
   };
 
   return (

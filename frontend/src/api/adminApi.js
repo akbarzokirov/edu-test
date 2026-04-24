@@ -1,4 +1,5 @@
 import api from "./axios";
+export { api };
 
 export const authApi = {
   login: (data) => api.post("/auth/login", data),
@@ -17,7 +18,7 @@ export const teachersApi = {
   create: (data) => api.post("/admin/teachers", data),
   update: (id, data) => api.patch(`/admin/teachers/${id}`, data),
   remove: (id) => api.delete(`/admin/teachers/${id}`),
-  resetPassword: (id) => api.post(`/admin/teachers/${id}/reset-password`),
+  resetPassword: (id, data) => api.post(`/admin/teachers/${id}/reset-password`, data),
 };
 
 export const studentsApi = {

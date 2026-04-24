@@ -1,21 +1,40 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ChevronLeft, CheckCircle2, XCircle, Clock, Calendar,
-  Award, FileText, Target, Flag,
+  Award, Target,
 } from "lucide-react";
 import PageHeader from "../../components/layout/PageHeader";
 import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
-import { mockStudentResults, mockTestQuestions } from "../../utils/mockData";
+import { mockTestQuestions } from "../../utils/mockData";
 import { formatDateTime, cn } from "../../utils/helpers";
+import api from "../../api/axios";
 
 const ResultDetail = () => {
   const { id } = useParams();
-  const result = useMemo(
-    () => mockStudentResults.find((r) => r.id === parseInt(id)),
-    [id]
-  );
+  const [loading, setLoading] = useState(true);
+  const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    fetchResult();
+  }, [id]);
+
+  const fetchResult = async () => {
+    try {
+      const res = await api.get("/student/results");
+      const found = res.data.data.find(r => r.id === parseInt(id));
+      setResult(found);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="p-8 text-center text-ink-500">Yuklanmoqda...</div>;
+  }
 
   if (!result) {
     return (
@@ -29,9 +48,11 @@ const ResultDetail = () => {
   }
 
   // Demo: har bir savolga random natija berish (real backendda bu maydon bo'ladi)
-  const questionsWithAnswers = mockTestQuestions.map((q, idx) => {
-    // Student result'idagi `correct` soniga mos ravishda birinchi N tasini to'g'ri qilamiz
-    const wasCorrect = idx < result.correct;
+  const questionCount = result.semester?.questionCount || 10;
+  const correctCount = Math.round((result.score / 100) * questionCount);
+
+  const questionsWithAnswers = mockTestQuestions.slice(0, questionCount).map((q, idx) => {
+    const wasCorrect = idx < correctCount;
     const selectedOption = wasCorrect
       ? q.correctOption
       : q.options.find((o) => o.id !== q.correctOption)?.id;
@@ -58,8 +79,8 @@ const ResultDetail = () => {
       </Link>
 
       <PageHeader
-        title={result.semesterName}
-        description={`${result.subject} · ${result.teacher}`}
+        title={result.semester?.name}
+        description={`${result.semester?.subject}`}
       />
 
       {/* Score hero */}
@@ -95,17 +116,17 @@ const ResultDetail = () => {
               {scoreLabel}
             </Badge>
             <h2 className="mt-3 text-2xl font-bold text-ink-900">
-              {result.correct}/{result.total} to'g'ri javob
+              {correctCount}/{questionCount} to'g'ri javob
             </h2>
             <p className="mt-1 text-sm text-ink-600">
-              {result.correct === result.total
+              {correctCount === questionCount
                 ? "Ajoyib! Barcha savollarga to'g'ri javob berdingiz 🎉"
-                : `${result.total - result.correct} ta savolda xato qilindi`}
+                : `${questionCount - correctCount} ta savolda xato qilindi`}
             </p>
             <div className="mt-4 flex flex-wrap justify-center lg:justify-start gap-3 text-xs text-ink-700">
               <InfoChip icon={Clock} label={`${result.duration} daqiqa`} />
-              <InfoChip icon={Target} label={`${result.attemptNumber}-urinish`} />
-              <InfoChip icon={Calendar} label={formatDateTime(result.submittedAt)} />
+              <InfoChip icon={Target} label={`${result.attempts}-urinish`} />
+              <InfoChip icon={Calendar} label={formatDateTime(result.submittedAt || result.createdAt)} />
             </div>
           </div>
         </div>
@@ -116,25 +137,25 @@ const ResultDetail = () => {
         <MiniStat
           icon={CheckCircle2}
           label="To'g'ri"
-          value={result.correct}
+          value={correctCount}
           color="bg-success-50 text-success-600"
         />
         <MiniStat
           icon={XCircle}
           label="Xato"
-          value={result.total - result.correct}
+          value={questionCount - correctCount}
           color="bg-danger-50 text-danger-600"
         />
         <MiniStat
           icon={Award}
           label="Aniqlik"
-          value={`${Math.round((result.correct / result.total) * 100)}%`}
+          value={`${Math.round((correctCount / questionCount) * 100) || 0}%`}
           color="bg-brand-50 text-brand-600"
         />
         <MiniStat
           icon={Clock}
           label="O'rt. savol vaqti"
-          value={`${Math.round((result.duration * 60) / result.total)}s`}
+          value={`${Math.round((result.duration * 60) / questionCount) || 0}s`}
           color="bg-violet-50 text-violet-600"
         />
       </div>
@@ -158,7 +179,7 @@ const ResultDetail = () => {
 
         <div className="divide-y divide-ink-100">
           {questionsWithAnswers.map((q, idx) => (
-            <QuestionReview key={q.id} question={q} index={idx} />
+            <QuestionReview key={q.id || idx} question={q} index={idx} />
           ))}
         </div>
       </Card>
@@ -230,14 +251,6 @@ const QuestionReview = ({ question, index }) => {
           );
         })}
       </div>
-
-      {/* Explanation (agar bo'lsa) */}
-      {question.explanation && (
-        <div className="ml-12 mt-3 p-3 rounded-lg bg-brand-50 border border-brand-100">
-          <div className="text-xs font-semibold text-brand-700 mb-1">💡 Tushuntirish</div>
-          <p className="text-xs text-brand-900 leading-relaxed">{question.explanation}</p>
-        </div>
-      )}
     </div>
   );
 };

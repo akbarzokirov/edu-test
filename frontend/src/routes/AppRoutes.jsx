@@ -8,6 +8,9 @@ import AdminLayout from "../components/layout/AdminLayout";
 import AdminDashboard from "../pages/admin/Dashboard";
 import AdminTeachers from "../pages/admin/Teachers";
 import AdminStudents from "../pages/admin/Students";
+import AdminGroups from "../pages/admin/Groups";
+import AdminSemesters from "../pages/admin/Semesters";
+import AdminSettings from "../pages/admin/Settings";
 
 import TeacherLayout from "../components/layout/TeacherLayout";
 import TeacherDashboard from "../pages/teacher/Dashboard";
@@ -30,9 +33,10 @@ const AppRoutes = () => {
 
   const homeRoute = () => {
     if (!user) return "/login";
-    if (user.role === "ADMIN") return "/admin";
-    if (user.role === "TEACHER") return "/teacher";
-    if (user.role === "STUDENT") return "/student";
+    const role = user.role.toUpperCase();
+    if (role === "ADMIN") return "/admin";
+    if (role === "TEACHER") return "/teacher";
+    if (role === "STUDENT") return "/student";
     return "/login";
   };
 
@@ -48,6 +52,9 @@ const AppRoutes = () => {
         <Route index element={<AdminDashboard />} />
         <Route path="teachers" element={<AdminTeachers />} />
         <Route path="students" element={<AdminStudents />} />
+        <Route path="groups" element={<AdminGroups />} />
+        <Route path="semesters" element={<AdminSemesters />} />
+        <Route path="settings" element={<AdminSettings />} />
       </Route>
 
       {/* TEACHER */}

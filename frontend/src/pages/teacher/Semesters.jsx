@@ -23,10 +23,8 @@ import EmptyState from "../../components/ui/EmptyState";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { SkeletonCard } from "../../components/ui/Skeleton";
 import SemesterFormModal from "./SemesterFormModal";
-import { mockTeacherSemesters, mockGroups } from "../../utils/mockData";
 import { formatDate, cn } from "../../utils/helpers";
-
-const CURRENT_TEACHER_ID = 1;
+import api from "../../api/axios";
 
 const Semesters = () => {
   const [items, setItems] = useState([]);
@@ -42,26 +40,33 @@ const Semesters = () => {
   });
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setItems(
-        mockTeacherSemesters.filter((s) => s.teacherId === CURRENT_TEACHER_ID),
-      );
-      setLoading(false);
-    }, 400);
-    return () => clearTimeout(t);
+    fetchSemesters();
   }, []);
 
-  const groupMap = useMemo(
-    () => Object.fromEntries(mockGroups.map((g) => [g.id, g])),
-    [],
-  );
+  const fetchSemesters = async () => {
+    try {
+      const res = await api.get("/teacher/semesters");
+      const sems = res.data.data || [];
+      const enriched = sems.map(s => ({
+        ...s,
+        submitted: s.results?.length || 0,
+        total: s.group?.studentsCount || s.group?.students?.length || 0 // Assuming students relation is returned
+      }));
+      setItems(enriched);
+    } catch (error) {
+      console.error(error);
+      toast.error("Semestrlarni yuklashda xatolik");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filtered = items.filter((s) => {
     const q = search.trim().toLowerCase();
     const mq =
       !q ||
       s.name.toLowerCase().includes(q) ||
-      s.subject.toLowerCase().includes(q);
+      (s.subject && s.subject.toLowerCase().includes(q));
     const ms = statusFilter === "all" || s.status === statusFilter;
     return mq && ms;
   });
@@ -75,38 +80,36 @@ const Semesters = () => {
 
   const handleSave = async (data) => {
     setFormLoading(true);
-    await new Promise((r) => setTimeout(r, 1200));
-
-    if (formModal.semester) {
-      setItems((prev) =>
-        prev.map((s) =>
-          s.id === formModal.semester.id ? { ...s, ...data } : s,
-        ),
-      );
-      toast.success("Semestr yangilandi");
-    } else {
-      const newItem = {
-        id: Date.now(),
-        teacherId: CURRENT_TEACHER_ID,
-        ...data,
-        status: "active",
-        submitted: 0,
-        total: groupMap[data.groupId]?.studentsCount || 0,
-        createdAt: new Date().toISOString(),
-      };
-      setItems((prev) => [newItem, ...prev]);
-      toast.success("Semestr yaratildi! AI test tayyorlanmoqda...");
+    try {
+      if (formModal.semester) {
+        await api.put(`/teacher/semesters/${formModal.semester.id}`, data);
+        toast.success("Semestr yangilandi");
+      } else {
+        await api.post("/teacher/semesters", data);
+        toast.success("Semestr yaratildi! AI test tayyorlanmoqda...");
+      }
+      fetchSemesters();
+    } catch (error) {
+      console.error(error);
+      toast.error("Xatolik yuz berdi");
+    } finally {
+      setFormLoading(false);
+      setFormModal({ open: false, semester: null });
     }
-    setFormLoading(false);
-    setFormModal({ open: false, semester: null });
   };
 
   const confirmDelete = async () => {
     setDeleteModal((p) => ({ ...p, loading: true }));
-    await new Promise((r) => setTimeout(r, 500));
-    setItems((prev) => prev.filter((s) => s.id !== deleteModal.semester.id));
-    setDeleteModal({ open: false, semester: null, loading: false });
-    toast.success("Semestr o'chirildi");
+    try {
+      await api.delete(`/teacher/semesters/${deleteModal.semester.id}`);
+      setItems((prev) => prev.filter((s) => s.id !== deleteModal.semester.id));
+      toast.success("Semestr o'chirildi");
+    } catch (error) {
+      console.error(error);
+      toast.error("O'chirishda xatolik");
+    } finally {
+      setDeleteModal({ open: false, semester: null, loading: false });
+    }
   };
 
   return (
@@ -214,7 +217,7 @@ const Semesters = () => {
             <SemesterCard
               key={s.id}
               semester={s}
-              group={groupMap[s.groupId]}
+              group={s.group}
               onEdit={() => setFormModal({ open: true, semester: s })}
               onDelete={() =>
                 setDeleteModal({ open: true, semester: s, loading: false })
@@ -224,13 +227,13 @@ const Semesters = () => {
         </div>
       )}
 
-      <SemesterFormModal
+      {formModal.open && <SemesterFormModal
         open={formModal.open}
         onClose={() => setFormModal({ open: false, semester: null })}
         onSave={handleSave}
         semester={formModal.semester}
         loading={formLoading}
-      />
+      />}
 
       <ConfirmDialog
         open={deleteModal.open}
@@ -274,13 +277,13 @@ const statusCfg = {
 
 const SemesterCard = ({ semester, group, onEdit, onDelete }) => {
   const expired =
-    new Date(semester.deadline) < new Date() && semester.status === "active";
-  const daysLeft = Math.ceil(
+    semester.deadline && new Date(semester.deadline) < new Date() && semester.status === "active";
+  const daysLeft = semester.deadline ? Math.ceil(
     (new Date(semester.deadline) - Date.now()) / 86400000,
-  );
+  ) : 0;
   const progress =
     semester.total > 0 ? (semester.submitted / semester.total) * 100 : 0;
-  const cfg = statusCfg[semester.status];
+  const cfg = statusCfg[semester.status] || statusCfg.draft;
 
   return (
     <Card
@@ -325,9 +328,9 @@ const SemesterCard = ({ semester, group, onEdit, onDelete }) => {
           <InfoRow icon={Users} label={group?.name || "—"} />
           <InfoRow
             icon={Calendar}
-            label={formatDate(semester.deadline)}
+            label={semester.deadline ? formatDate(semester.deadline) : "Muddatsiz"}
             suffix={
-              semester.status === "active" && !expired
+              semester.status === "active" && !expired && semester.deadline
                 ? `${daysLeft} kun qoldi`
                 : expired
                   ? "Muddati o'tdi"

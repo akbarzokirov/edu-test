@@ -1,9 +1,9 @@
 import { ChevronDown } from "lucide-react";
 import { cn } from "../../utils/helpers";
 
-const Select = ({ label, error, className = "", children, ...props }) => {
+const Select = ({ label, error, className = "", containerClassName = "", children, ...props }) => {
   return (
-    <div className="w-full">
+    <div className={cn("w-full", containerClassName)}>
       {label && (
         <label className="block text-sm font-medium text-ink-700 mb-1.5">{label}</label>
       )}

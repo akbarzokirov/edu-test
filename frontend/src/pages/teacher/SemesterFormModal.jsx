@@ -15,10 +15,9 @@ import Modal from "../../components/ui/Modal";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
-import { mockGroups, mockTeachers, SUBJECTS } from "../../utils/mockData";
+import { SUBJECTS } from "../../utils/mockData";
 import { cn } from "../../utils/helpers";
-
-const CURRENT_TEACHER_ID = 1;
+import api from "../../api/axios";
 
 const empty = {
   name: "",
@@ -45,13 +44,12 @@ const SemesterFormModal = ({
   const [form, setForm] = useState(empty);
   const [errors, setErrors] = useState({});
   const [dragOver, setDragOver] = useState(false);
+  const [groups, setGroups] = useState([]);
   const fileInputRef = useRef(null);
-
-  const myTeacher = mockTeachers.find((t) => t.id === CURRENT_TEACHER_ID);
-  const myGroups = mockGroups.filter((g) => myTeacher?.groups?.includes(g.id));
 
   useEffect(() => {
     if (open) {
+      fetchGroups();
       if (semester) {
         setForm({
           name: semester.name || "",
@@ -62,7 +60,7 @@ const SemesterFormModal = ({
           questionCount: semester.questionCount || 20,
           attempts: semester.attempts || 2,
           duration: semester.duration || 60,
-          deadline: semester.deadline ? semester.deadline.slice(0, 16) : "",
+          deadline: semester.deadline ? new Date(semester.deadline).toISOString().slice(0, 16) : "",
           autoGrade: semester.autoGrade ?? true,
           sourceFile: semester.sourceFile
             ? { name: semester.sourceFile, size: null }
@@ -74,6 +72,15 @@ const SemesterFormModal = ({
       setErrors({});
     }
   }, [open, semester]);
+
+  const fetchGroups = async () => {
+    try {
+      const res = await api.get("/teacher/groups");
+      setGroups(res.data.data || []);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   const update = (k, v) => {
     setForm((p) => ({ ...p, [k]: v }));
@@ -154,7 +161,6 @@ const SemesterFormModal = ({
       }
     >
       <div className="space-y-6">
-        {/* Section 1: Basic info */}
         <Section
           title="Asosiy ma'lumotlar"
           description="Semestr haqidagi umumiy ma'lumotlar"
@@ -187,9 +193,9 @@ const SemesterFormModal = ({
               error={errors.groupId}
             >
               <option value="">Guruhni tanlang</option>
-              {myGroups.map((g) => (
+              {groups.map((g) => (
                 <option key={g.id} value={g.id}>
-                  {g.name} — {g.studentsCount} o'quvchi
+                  {g.name} — {g.students?.length || 0} o'quvchi
                 </option>
               ))}
             </Select>
@@ -216,7 +222,6 @@ const SemesterFormModal = ({
           </div>
         </Section>
 
-        {/* Section 2: File upload */}
         <Section
           title="Manba fayl"
           description="Darslik/qo'llanma PDF, Word yoki TXT formatda (ixtiyoriy, AI to'ldiriladi)"
@@ -292,7 +297,6 @@ const SemesterFormModal = ({
           )}
         </Section>
 
-        {/* Section 3: AI prompt */}
         <Section
           title="AI ko'rsatmasi"
           description="AI qanday testlar yaratishi kerakligini tavsiflab bering"
@@ -325,7 +329,6 @@ const SemesterFormModal = ({
           </div>
         </Section>
 
-        {/* Section 4: Test settings */}
         <Section
           title="Test parametrlari"
           description="Savollar soni, urinishlar, vaqt"
@@ -371,7 +374,6 @@ const SemesterFormModal = ({
             />
           </div>
 
-          {/* Auto-grade toggle */}
           <div className="mt-4 p-3.5 rounded-xl bg-ink-50 border border-ink-100 flex items-start gap-3">
             <div
               className={cn(

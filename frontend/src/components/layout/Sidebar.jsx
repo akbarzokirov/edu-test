@@ -74,23 +74,7 @@ const Sidebar = ({ open, onClose, navItems, subtitle = "AI Admin Panel" }) => (
             </NavLink>
           ))}
         </nav>
-        <div className="px-4 pb-5">
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 p-4 text-white">
-            <div className="relative z-10">
-              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/20 text-[11px] font-semibold backdrop-blur-sm">
-                <Sparkles className="w-3 h-3" /> AI Powered
-              </div>
-              <h4 className="mt-3 font-semibold text-[15px] leading-tight">
-                Testlarni avtomatik yarating
-              </h4>
-              <p className="mt-1 text-xs text-white/80 leading-relaxed">
-                Groq AI yordamida istalgan darslikdan test tuzing.
-              </p>
-            </div>
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-white/10 blur-2xl" />
-            <div className="absolute -right-2 -top-2 w-16 h-16 rounded-full bg-white/10 blur-xl" />
-          </div>
-        </div>
+
       </div>
     </aside>
   </>

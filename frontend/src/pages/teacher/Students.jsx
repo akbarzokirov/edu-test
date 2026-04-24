@@ -6,23 +6,20 @@ import {
   BookOpenCheck,
   TrendingUp,
   UsersRound,
+  Plus
 } from "lucide-react";
+import toast from "react-hot-toast";
 import PageHeader from "../../components/layout/PageHeader";
 import Card from "../../components/ui/Card";
+import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
 import Avatar from "../../components/ui/Avatar";
 import Select from "../../components/ui/Select";
 import EmptyState from "../../components/ui/EmptyState";
 import { SkeletonTable } from "../../components/ui/Skeleton";
-import {
-  mockStudents,
-  mockGroups,
-  mockTeachers,
-  mockResults,
-} from "../../utils/mockData";
+import StudentFormModal from "./StudentFormModal";
 import { cn, formatDate } from "../../utils/helpers";
-
-const CURRENT_TEACHER_ID = 1;
+import api from "../../api/axios";
 
 const getScoreVariant = (score) => {
   if (score >= 85) return "success";
@@ -39,64 +36,89 @@ const Students = () => {
   const [search, setSearch] = useState("");
   const [groupFilter, setGroupFilter] = useState(initialGroup);
 
+  const [students, setStudents] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
+
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
+    fetchData();
   }, []);
 
-  const myTeacher = useMemo(
-    () => mockTeachers.find((t) => t.id === CURRENT_TEACHER_ID),
-    [],
-  );
-  const myGroupIds = myTeacher?.groups || [];
-
-  const myStudents = useMemo(() => {
-    return mockStudents
-      .filter((s) => myGroupIds.includes(s.groupId))
-      .map((s) => {
-        const results = mockResults.filter((r) => r.studentId === s.id);
+  const fetchData = async () => {
+    try {
+      const [resStudents, resGroups] = await Promise.all([
+        api.get("/teacher/students"),
+        api.get("/teacher/groups")
+      ]);
+      
+      const st = resStudents.data.data || [];
+      const myStudents = st.map(s => {
+        const results = s.results || [];
         const avg = results.length
-          ? Math.round(
-              results.reduce((a, r) => a + r.score, 0) / results.length,
-            )
+          ? Math.round(results.reduce((a, r) => a + r.score, 0) / results.length)
           : null;
         return { ...s, myTestsCompleted: results.length, myAvgScore: avg };
       });
-  }, [myGroupIds]);
+      setStudents(myStudents);
+      setGroups(resGroups.data.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveStudent = async (data) => {
+    setFormLoading(true);
+    try {
+      await api.post("/postUser", data);
+      toast.success("O'quvchi qo'shildi!");
+      fetchData();
+      setFormModalOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Xatolik yuz berdi");
+    } finally {
+      setFormLoading(false);
+    }
+  };
 
   const groupMap = useMemo(
-    () => Object.fromEntries(mockGroups.map((g) => [g.id, g])),
-    [],
+    () => Object.fromEntries(groups.map((g) => [g.id, g])),
+    [groups],
   );
 
-  const filtered = myStudents.filter((s) => {
+  const filtered = students.filter((s) => {
     const q = search.trim().toLowerCase();
     const mq =
       !q ||
       s.fullName.toLowerCase().includes(q) ||
-      s.username.toLowerCase().includes(q) ||
-      s.email.toLowerCase().includes(q);
+      (s.email && s.email.toLowerCase().includes(q));
     const mg = groupFilter === "all" || s.groupId === parseInt(groupFilter);
     return mq && mg;
   });
 
-  const scored = myStudents.filter((s) => s.myAvgScore != null);
+  const scored = students.filter((s) => s.myAvgScore != null);
   const stats = {
-    total: myStudents.length,
-    active: myStudents.filter((s) => s.status === "active").length,
+    total: students.length,
+    active: students.filter((s) => s.isActive !== false).length,
     avgScore: scored.length
       ? Math.round(scored.reduce((a, s) => a + s.myAvgScore, 0) / scored.length)
       : 0,
-    completed: myStudents.reduce((a, s) => a + (s.myTestsCompleted || 0), 0),
+    completed: students.reduce((a, s) => a + (s.myTestsCompleted || 0), 0),
   };
-
-  const myGroups = mockGroups.filter((g) => myGroupIds.includes(g.id));
 
   return (
     <div>
       <PageHeader
         title="O'quvchilar"
         description="Sizning guruhlaringizdagi o'quvchilar"
+        action={
+          <Button variant="brand" icon={Plus} onClick={() => setFormModalOpen(true)}>
+            Yangi o'quvchi
+          </Button>
+        }
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -143,7 +165,7 @@ const Students = () => {
             className="sm:w-52"
           >
             <option value="all">Barcha guruhlar</option>
-            {myGroups.map((g) => (
+            {groups.map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}
               </option>
@@ -192,7 +214,7 @@ const Students = () => {
                             {s.fullName}
                           </div>
                           <div className="text-xs text-ink-500">
-                            @{s.username}
+                            @{s.email ? s.email.split('@')[0] : "user"}
                           </div>
                         </div>
                       </div>
@@ -216,10 +238,10 @@ const Students = () => {
                     </Td>
                     <Td>
                       <Badge
-                        variant={s.status === "active" ? "success" : "gray"}
+                        variant={s.isActive !== false ? "success" : "gray"}
                         dot
                       >
-                        {s.status === "active" ? "Faol" : "Nofaol"}
+                        {s.isActive !== false ? "Faol" : "Nofaol"}
                       </Badge>
                     </Td>
                     <Td className="text-xs text-ink-500">
@@ -248,7 +270,7 @@ const Students = () => {
                       )}
                     </div>
                     <div className="text-xs text-ink-500 mt-0.5 truncate">
-                      @{s.username}
+                      @{s.email ? s.email.split('@')[0] : "user"}
                     </div>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant="info" className="text-[10px]">
@@ -265,6 +287,14 @@ const Students = () => {
           </div>
         </>
       )}
+
+      <StudentFormModal
+        open={formModalOpen}
+        onClose={() => setFormModalOpen(false)}
+        onSave={handleSaveStudent}
+        groups={groups}
+        loading={formLoading}
+      />
     </div>
   );
 };

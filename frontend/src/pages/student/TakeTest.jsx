@@ -1,25 +1,27 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Clock, CheckCircle2, AlertTriangle, Flag, ChevronLeft, ChevronRight,
-  Send, X, Sparkles, Eye, EyeOff,
+  Send, Sparkles, Eye,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
 import Modal from "../../components/ui/Modal";
-import { mockStudentSemesters, mockTestQuestions } from "../../utils/mockData";
+import { mockTestQuestions } from "../../utils/mockData";
 import { cn } from "../../utils/helpers";
+import api from "../../api/axios";
 
 const TakeTest = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const semester = useMemo(
-    () => mockStudentSemesters.find((s) => s.id === parseInt(id)),
-    [id]
-  );
+  const [loading, setLoading] = useState(true);
+  const [semester, setSemester] = useState(null);
+  const [pastResults, setPastResults] = useState([]);
+  
+  // Real test questions should be fetched from backend. For now, we simulate them.
   const questions = mockTestQuestions;
 
   const [started, setStarted] = useState(false);
@@ -31,6 +33,23 @@ const TakeTest = () => {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
+
+  useEffect(() => {
+    fetchSemesterData();
+  }, [id]);
+
+  const fetchSemesterData = async () => {
+    try {
+      const res = await api.get(`/student/semesters/${id}`);
+      setSemester(res.data.data.semester);
+      setPastResults(res.data.data.results || []);
+    } catch (error) {
+      console.error(error);
+      toast.error("Test ma'lumotlarini olishda xatolik");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Timer
   useEffect(() => {
@@ -61,6 +80,10 @@ const TakeTest = () => {
     return () => document.removeEventListener("visibilitychange", handler);
   }, [started, result]);
 
+  if (loading) {
+    return <div className="p-8 text-center text-ink-500">Yuklanmoqda...</div>;
+  }
+
   if (!semester) {
     return (
       <div className="max-w-md mx-auto mt-20 text-center">
@@ -72,7 +95,14 @@ const TakeTest = () => {
     );
   }
 
+  const attemptsUsed = pastResults.length;
+  const canTake = attemptsUsed < semester.attempts && semester.status === "active";
+
   const startTest = () => {
+    if (!canTake) {
+      toast.error("Testni boshlash mumkin emas!");
+      return;
+    }
     setStarted(true);
     setTimeLeft(semester.duration * 60);
     setCurrent(0);
@@ -97,7 +127,6 @@ const TakeTest = () => {
     setShowSubmitModal(false);
     setSubmitting(true);
 
-    // Calculate result
     let correct = 0;
     questions.forEach((q) => {
       if (answers[q.id] === q.correctOption) correct++;
@@ -105,14 +134,17 @@ const TakeTest = () => {
     const score = Math.round((correct / questions.length) * 100);
     const duration = semester.duration - Math.floor(timeLeft / 60);
 
-    // Simulate AI grading delay
-    await new Promise((r) => setTimeout(r, 1500));
-
-    setResult({ score, correct, total: questions.length, duration, auto });
-    setSubmitting(false);
-
-    if (auto) toast("Vaqt tugadi — test avtomatik topshirildi");
-    else toast.success("Test topshirildi!");
+    try {
+      await api.post(`/student/semesters/${semester.id}/submit`, { score, duration });
+      setResult({ score, correct, total: questions.length, duration, auto });
+      if (auto) toast("Vaqt tugadi — test avtomatik topshirildi");
+      else toast.success("Test topshirildi!");
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Xatolik yuz berdi");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const answeredCount = Object.keys(answers).length;
@@ -132,17 +164,17 @@ const TakeTest = () => {
         <Card padded={false}>
           <div className="p-6 border-b border-ink-100">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-50 text-brand-700 text-xs font-semibold mb-3">
-              <Sparkles className="w-3 h-3" /> AI test
+              <Sparkles className="w-3 h-3" /> Sun'iy intellekt testi
             </div>
             <h1 className="text-2xl font-bold text-ink-900 tracking-tight">{semester.name}</h1>
-            <p className="mt-1 text-sm text-ink-500">{semester.subject} · {semester.teacher}</p>
+            <p className="mt-1 text-sm text-ink-500">{semester.subject} · {semester.teacher?.fullName}</p>
           </div>
 
           <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <IntroStat label="Savollar" value={questions.length} />
+            <IntroStat label="Savollar" value={semester.questionCount} />
             <IntroStat label="Vaqt" value={`${semester.duration} daq`} />
-            <IntroStat label="Urinishlar" value={`${semester.attempts - semester.attemptsUsed}/${semester.attempts}`} />
-            <IntroStat label="Avtomatik baho" value={semester.autoGrade ? "Ha" : "Yo'q"} />
+            <IntroStat label="Urinishlar" value={`${semester.attempts - attemptsUsed}/${semester.attempts}`} />
+            <IntroStat label="Avtomatik baho" value="Ha" />
           </div>
 
           {/* Rules */}
@@ -167,8 +199,8 @@ const TakeTest = () => {
             <Link to="/student/semesters" className="sm:flex-1">
               <Button variant="secondary" className="w-full">Orqaga</Button>
             </Link>
-            <Button variant="brand" onClick={startTest} className="sm:flex-1">
-              Testni boshlash
+            <Button variant="brand" onClick={startTest} className="sm:flex-1" disabled={!canTake}>
+              {!canTake ? "Urinishlar qolmagan" : "Testni boshlash"}
             </Button>
           </div>
         </Card>
@@ -225,7 +257,7 @@ const TakeTest = () => {
           <div className="p-6 space-y-2">
             <Link to="/student/results">
               <Button variant="brand" className="w-full" icon={Eye}>
-                Batafsil natijani ko'rish
+                Barcha natijalarimni ko'rish
               </Button>
             </Link>
             <Link to="/student/semesters">
@@ -247,7 +279,6 @@ const TakeTest = () => {
 
   return (
     <div className="max-w-6xl mx-auto -mt-6 -mx-4 lg:-mx-6">
-      {/* Header */}
       <div className="sticky top-16 z-20 bg-canvas/95 backdrop-blur-xl border-b border-ink-100">
         <div className="px-4 lg:px-6 py-3 flex items-center gap-3">
           <div className="flex-1 min-w-0">
@@ -289,7 +320,6 @@ const TakeTest = () => {
       </div>
 
       <div className="px-4 lg:px-6 py-6 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
-        {/* Question */}
         <div>
           <Card padded={false}>
             <div className="p-6">
@@ -345,7 +375,6 @@ const TakeTest = () => {
               </div>
             </div>
 
-            {/* Navigation */}
             <div className="p-4 border-t border-ink-100 bg-ink-50/50 flex items-center justify-between">
               <Button
                 variant="secondary"
@@ -375,7 +404,6 @@ const TakeTest = () => {
           </Card>
         </div>
 
-        {/* Question grid sidebar */}
         <aside>
           <Card padded={false} className="lg:sticky lg:top-36">
             <div className="p-4 border-b border-ink-100">
@@ -426,7 +454,6 @@ const TakeTest = () => {
         </aside>
       </div>
 
-      {/* Submit confirmation modal */}
       <Modal
         open={showSubmitModal}
         onClose={() => setShowSubmitModal(false)}

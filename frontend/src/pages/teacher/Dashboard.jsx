@@ -1,51 +1,50 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Users,
   UsersRound,
   FileText,
   TrendingUp,
   TrendingDown,
-  Sparkles,
-  ArrowUpRight,
-  FilePlus,
   BookOpenCheck,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
+  ArrowUpRight,
 } from "lucide-react";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts";
 import { Link } from "react-router-dom";
 import PageHeader from "../../components/layout/PageHeader";
 import Card from "../../components/ui/Card";
+import Avatar from "../../components/ui/Avatar";
+import Badge from "../../components/ui/Badge";
 import { SkeletonCard } from "../../components/ui/Skeleton";
-import {
-  mockTeacherStats,
-  mockTeacherChart,
-  mockTeacherSemesters,
-  mockTeacherActivity,
-} from "../../utils/mockData";
-import { timeAgo, cn } from "../../utils/helpers";
+import { formatDate, cn } from "../../utils/helpers";
 import { useAuth } from "../../context/AuthContext";
+import api from "../../api/axios";
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
+  const [recentStudents, setRecentStudents] = useState([]);
+
+  const fetchData = async () => {
+    try {
+      const [resStats, resStudents] = await Promise.all([
+        api.get("/teacher/stats"),
+        api.get("/teacher/students")
+      ]);
+      setStats(resStats.data.data);
+
+      const st = resStudents.data.data || [];
+      // Sort by createdAt DESC and take top 5
+      const recent = st.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+      setRecentStudents(recent);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setStats(mockTeacherStats);
-      setLoading(false);
-    }, 400);
-    return () => clearTimeout(t);
+    fetchData();
   }, []);
 
   const cards = [
@@ -88,9 +87,6 @@ const Dashboard = () => {
   ];
 
   const firstName = (user?.fullName || "O'qituvchi").split(" ")[0];
-  const upcoming = mockTeacherSemesters
-    .filter((s) => s.status === "active")
-    .slice(0, 3);
 
   return (
     <div>
@@ -99,6 +95,7 @@ const Dashboard = () => {
         description="Bugun nima qilamiz?"
       />
 
+      {/* 4 Cards Section */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         {loading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
@@ -108,179 +105,50 @@ const Dashboard = () => {
             })}
       </div>
 
-      <Link to="/teacher/semesters" className="group block mb-6">
-        <Card className="bg-gradient-to-br from-brand-600 to-brand-800 text-white border-0 overflow-hidden relative">
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-6 h-6" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-lg">
-                AI bilan yangi semestr yarating
-              </h3>
-              <p className="text-sm text-white/80 mt-1">
-                PDF yoki Word yuklang — Groq AI avtomatik test yaratadi
-              </p>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-brand-700 font-semibold text-sm self-start sm:self-auto group-hover:bg-brand-50 transition-colors">
-              <FilePlus className="w-4 h-4" /> Boshlash
-            </div>
-          </div>
-          <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute right-1/3 -bottom-16 w-32 h-32 rounded-full bg-white/5 blur-2xl" />
-        </Card>
-      </Link>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <Card className="lg:col-span-2" padded={false}>
-          <div className="p-5 pb-0 flex items-start justify-between">
-            <div>
-              <h3 className="font-semibold text-ink-900">
-                Test topshiruvchilar dinamikasi
-              </h3>
-              <p className="text-xs text-ink-500 mt-0.5">So'nggi 8 oy</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <LegendDot color="#4F46E5" label="Topshiruvchilar" />
-              <LegendDot color="#10B981" label="O'rtacha ball" />
-            </div>
-          </div>
-          <div className="h-72 p-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockTeacherChart}>
-                <defs>
-                  <linearGradient id="sub" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4F46E5" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#4F46E5" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="score" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#F1F5F9"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "#64748B" }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fill: "#64748B" }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "#0F172A",
-                    border: "none",
-                    borderRadius: 12,
-                    color: "#fff",
-                    fontSize: 12,
-                    padding: "8px 12px",
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="submissions"
-                  stroke="#4F46E5"
-                  strokeWidth={2.5}
-                  fill="url(#sub)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="avgScore"
-                  stroke="#10B981"
-                  strokeWidth={2.5}
-                  fill="url(#score)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-
-        <Card padded={false}>
-          <div className="p-5 pb-3">
-            <h3 className="font-semibold text-ink-900">
-              Tez-tez kelayotgan deadline'lar
-            </h3>
-            <p className="text-xs text-ink-500 mt-0.5">Faol semestrlar</p>
-          </div>
-          <div className="divide-y divide-ink-100">
-            {upcoming.length === 0 ? (
-              <div className="px-5 py-8 text-center text-sm text-ink-500">
-                Faol semestrlar yo'q
-              </div>
-            ) : (
-              upcoming.map((s) => {
-                const daysLeft = Math.ceil(
-                  (new Date(s.deadline) - Date.now()) / 86400000,
-                );
-                const urgency =
-                  daysLeft <= 3 ? "danger" : daysLeft <= 7 ? "warning" : "ok";
-                return (
-                  <div
-                    key={s.id}
-                    className="px-5 py-3.5 hover:bg-ink-50/50 transition-colors"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={cn(
-                          "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0",
-                          urgency === "danger"
-                            ? "bg-danger-50 text-danger-600"
-                            : urgency === "warning"
-                              ? "bg-warning-50 text-warning-600"
-                              : "bg-brand-50 text-brand-600",
-                        )}
-                      >
-                        {urgency === "danger" ? (
-                          <AlertCircle className="w-4 h-4" />
-                        ) : (
-                          <Clock className="w-4 h-4" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-ink-900 truncate">
-                          {s.name}
-                        </p>
-                        <p className="text-xs text-ink-500 mt-0.5">
-                          {daysLeft > 0
-                            ? `${daysLeft} kun qoldi`
-                            : "Muddati o'tdi"}
-                        </p>
-                      </div>
-                      <div className="text-xs font-semibold text-ink-700">
-                        {s.submitted}/{s.total}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </Card>
-      </div>
-
-      <Card padded={false}>
+      {/* Recent Students Section */}
+      <Card padded={false} className="overflow-hidden">
         <div className="flex items-center justify-between p-5 pb-3">
-          <h3 className="font-semibold text-ink-900">So'nggi faoliyat</h3>
+          <div>
+            <h3 className="font-semibold text-ink-900">Oxirgi qo'shilgan o'quvchilar</h3>
+            <p className="text-xs text-ink-500 mt-0.5">Sizning guruhlaringizdagi so'nggi 5 ta o'quvchi</p>
+          </div>
           <Link
-            to="/teacher/results"
+            to="/teacher/students"
             className="text-xs text-brand-600 hover:text-brand-700 font-medium inline-flex items-center gap-1"
           >
-            Barcha natijalar <ArrowUpRight className="w-3.5 h-3.5" />
+            Barchasini ko'rish <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>
-        <div className="divide-y divide-ink-100">
-          {mockTeacherActivity.map((a) => (
-            <ActivityRow key={a.id} item={a} />
-          ))}
-        </div>
+        
+        {loading ? (
+          <div className="p-5 text-sm text-ink-500">Yuklanmoqda...</div>
+        ) : recentStudents.length === 0 ? (
+          <div className="p-5 text-sm text-ink-500">Hali o'quvchilar yo'q.</div>
+        ) : (
+          <div className="divide-y divide-ink-100">
+            {recentStudents.map(s => (
+              <div key={s.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-ink-50/50 transition-colors">
+                <Avatar name={s.fullName} size="md" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-ink-900 truncate">
+                    {s.fullName}
+                  </div>
+                  <div className="text-xs text-ink-500 mt-0.5 truncate">
+                    @{s.email ? s.email.split('@')[0] : "user"}
+                  </div>
+                </div>
+                <div className="hidden sm:block">
+                  <Badge variant="info" className="text-[10px]">
+                    {s.group?.name || "Guruhsiz"}
+                  </Badge>
+                </div>
+                <div className="text-xs text-ink-400 whitespace-nowrap">
+                  {formatDate(s.createdAt)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );
@@ -288,7 +156,7 @@ const Dashboard = () => {
 
 const StatCard = ({ label, value, change, icon: Icon, accent, to }) => (
   <Link to={to} className="group block">
-    <Card className="hover:shadow-pop hover:border-ink-300 transition-all">
+    <Card className="hover:shadow-pop hover:border-ink-300 transition-all h-full">
       <div className="flex items-start justify-between">
         <div
           className={cn(
@@ -329,56 +197,5 @@ const StatCard = ({ label, value, change, icon: Icon, accent, to }) => (
     </Card>
   </Link>
 );
-
-const LegendDot = ({ color, label }) => (
-  <div className="flex items-center gap-1.5 text-xs text-ink-700">
-    <span className="w-2 h-2 rounded-full" style={{ background: color }} />
-    {label}
-  </div>
-);
-
-const actStyles = {
-  test_submitted: {
-    bg: "bg-success-50",
-    color: "text-success-600",
-    Icon: CheckCircle2,
-  },
-  ai_generated: { bg: "bg-brand-50", color: "text-brand-600", Icon: Sparkles },
-  semester_created: {
-    bg: "bg-violet-50",
-    color: "text-violet-600",
-    Icon: FilePlus,
-  },
-  deadline_warning: {
-    bg: "bg-warning-50",
-    color: "text-warning-600",
-    Icon: Clock,
-  },
-};
-
-const ActivityRow = ({ item }) => {
-  const s = actStyles[item.type] || actStyles.test_submitted;
-  return (
-    <div className="flex items-start gap-3 px-5 py-3.5 hover:bg-ink-50/50 transition-colors">
-      <div
-        className={cn(
-          "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0",
-          s.bg,
-        )}
-      >
-        <s.Icon className={cn("w-4 h-4", s.color)} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-ink-900">{item.title}</p>
-        <p className="text-xs text-ink-500 mt-0.5 truncate">
-          {item.description}
-        </p>
-      </div>
-      <div className="text-xs text-ink-400 whitespace-nowrap">
-        {timeAgo(item.timestamp)}
-      </div>
-    </div>
-  );
-};
 
 export default Dashboard;

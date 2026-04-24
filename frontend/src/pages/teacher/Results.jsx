@@ -15,15 +15,8 @@ import Button from "../../components/ui/Button";
 import Select from "../../components/ui/Select";
 import EmptyState from "../../components/ui/EmptyState";
 import { SkeletonTable } from "../../components/ui/Skeleton";
-import {
-  mockResults,
-  mockStudents,
-  mockTeacherSemesters,
-  mockGroups,
-} from "../../utils/mockData";
 import { formatDateTime, cn } from "../../utils/helpers";
-
-const CURRENT_TEACHER_ID = 1;
+import api from "../../api/axios";
 
 const getScoreVariant = (score) => {
   if (score >= 85) return "success";
@@ -44,37 +37,31 @@ const Results = () => {
   const [semesterFilter, setSemesterFilter] = useState("all");
   const [scoreFilter, setScoreFilter] = useState("all");
 
+  const [results, setResults] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(t);
+    fetchData();
   }, []);
 
-  const mySemesters = useMemo(
-    () =>
-      mockTeacherSemesters.filter((s) => s.teacherId === CURRENT_TEACHER_ID),
-    [],
-  );
-  const mySemesterIds = mySemesters.map((s) => s.id);
-  const semMap = useMemo(
-    () => Object.fromEntries(mySemesters.map((s) => [s.id, s])),
-    [mySemesters],
-  );
-  const studentMap = useMemo(
-    () => Object.fromEntries(mockStudents.map((s) => [s.id, s])),
-    [],
-  );
-  const groupMap = useMemo(
-    () => Object.fromEntries(mockGroups.map((g) => [g.id, g])),
-    [],
-  );
+  const fetchData = async () => {
+    try {
+      const [resResults, resSemesters] = await Promise.all([
+        api.get("/teacher/results"),
+        api.get("/teacher/semesters")
+      ]);
+      setResults(resResults.data.data || []);
+      setSemesters(resSemesters.data.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const myResults = mockResults.filter((r) =>
-    mySemesterIds.includes(r.semesterId),
-  );
-
-  const filtered = myResults.filter((r) => {
-    const student = studentMap[r.studentId];
-    const sem = semMap[r.semesterId];
+  const filtered = results.filter((r) => {
+    const student = r.student;
+    const sem = r.semester;
     if (!student || !sem) return false;
 
     const q = search.trim().toLowerCase();
@@ -94,16 +81,16 @@ const Results = () => {
   });
 
   const stats = {
-    total: myResults.length,
-    avgScore: myResults.length
+    total: results.length,
+    avgScore: results.length
       ? Math.round(
-          myResults.reduce((a, r) => a + r.score, 0) / myResults.length,
+          results.reduce((a, r) => a + r.score, 0) / results.length,
         )
       : 0,
-    excellent: myResults.filter((r) => r.score >= 85).length,
-    avgDuration: myResults.length
+    excellent: results.filter((r) => r.score >= 85).length,
+    avgDuration: results.length
       ? Math.round(
-          myResults.reduce((a, r) => a + r.duration, 0) / myResults.length,
+          results.reduce((a, r) => a + (r.duration || 0), 0) / results.length,
         )
       : 0,
   };
@@ -165,7 +152,7 @@ const Results = () => {
               className="lg:w-52"
             >
               <option value="all">Barcha semestrlar</option>
-              {mySemesters.map((s) => (
+              {semesters.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
                 </option>
@@ -215,9 +202,9 @@ const Results = () => {
               </thead>
               <tbody className="divide-y divide-ink-100">
                 {filtered.map((r) => {
-                  const student = studentMap[r.studentId];
-                  const sem = semMap[r.semesterId];
-                  const group = sem ? groupMap[sem.groupId] : null;
+                  const student = r.student;
+                  const sem = r.semester;
+                  const group = student?.group;
                   return (
                     <tr
                       key={r.id}
@@ -231,7 +218,7 @@ const Results = () => {
                               {student?.fullName}
                             </div>
                             <div className="text-xs text-ink-500">
-                              @{student?.username}
+                              @{student?.email ? student.email.split('@')[0] : "user"}
                             </div>
                           </div>
                         </div>
@@ -252,14 +239,14 @@ const Results = () => {
                           {r.score}% · {scoreLabel(r.score)}
                         </Badge>
                       </Td>
-                      <Td className="text-sm text-ink-700">{r.duration} daq</Td>
+                      <Td className="text-sm text-ink-700">{r.duration || 0} daq</Td>
                       <Td>
                         <span className="text-sm text-ink-700 font-medium">
-                          {r.attempts}
+                          {r.attempts || 1}
                         </span>
                       </Td>
                       <Td className="text-xs text-ink-500">
-                        {formatDateTime(r.submittedAt)}
+                        {formatDateTime(r.submittedAt || r.createdAt)}
                       </Td>
                     </tr>
                   );
@@ -270,8 +257,8 @@ const Results = () => {
 
           <div className="lg:hidden space-y-3">
             {filtered.map((r) => {
-              const student = studentMap[r.studentId];
-              const sem = semMap[r.semesterId];
+              const student = r.student;
+              const sem = r.semester;
               return (
                 <Card key={r.id} padded={false}>
                   <div className="p-4">
@@ -291,11 +278,11 @@ const Results = () => {
                     </div>
                     <div className="flex items-center gap-3 text-xs text-ink-500">
                       <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> {r.duration} daq
+                        <Clock className="w-3 h-3" /> {r.duration || 0} daq
                       </span>
-                      <span>Urinish: {r.attempts}</span>
+                      <span>Urinish: {r.attempts || 1}</span>
                       <span className="ml-auto">
-                        {formatDateTime(r.submittedAt)}
+                        {formatDateTime(r.submittedAt || r.createdAt)}
                       </span>
                     </div>
                   </div>

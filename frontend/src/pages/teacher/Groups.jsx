@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import {
   Users,
   GraduationCap,
@@ -11,15 +11,8 @@ import PageHeader from "../../components/layout/PageHeader";
 import Card from "../../components/ui/Card";
 import EmptyState from "../../components/ui/EmptyState";
 import { SkeletonCard } from "../../components/ui/Skeleton";
-import {
-  mockGroups,
-  mockTeachers,
-  mockStudents,
-  mockTeacherSemesters,
-} from "../../utils/mockData";
 import { cn } from "../../utils/helpers";
-
-const CURRENT_TEACHER_ID = 1;
+import api from "../../api/axios";
 
 const gradients = [
   "from-brand-400 to-brand-700",
@@ -33,43 +26,42 @@ const gradients = [
 const Groups = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [groups, setGroups] = useState([]);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(t);
+    fetchGroups();
   }, []);
 
-  const myTeacher = useMemo(
-    () => mockTeachers.find((t) => t.id === CURRENT_TEACHER_ID),
-    [],
-  );
+  const fetchGroups = async () => {
+    try {
+      const { data } = await api.get("/teacher/groups");
+      const gList = data.data || [];
+      // To get active semesters per group, we can fetch semesters
+      const semRes = await api.get("/teacher/semesters");
+      const semesters = semRes.data.data || [];
 
-  const myGroups = useMemo(() => {
-    const ids = myTeacher?.groups || [];
-    return mockGroups
-      .filter((g) => ids.includes(g.id))
-      .map((g) => {
-        const studentsInGroup = mockStudents.filter((s) => s.groupId === g.id);
-        const semestersForGroup = mockTeacherSemesters.filter(
-          (s) => s.teacherId === CURRENT_TEACHER_ID && s.groupId === g.id,
-        );
-        const activeSem = semestersForGroup.filter(
-          (s) => s.status === "active",
-        ).length;
+      const enrichedGroups = gList.map(g => {
+        const groupSemesters = semesters.filter(s => s.groupId === g.id);
+        const activeSemesters = groupSemesters.filter(s => s.status === "active").length;
         return {
           ...g,
-          studentsCount: studentsInGroup.length,
-          activeSemesters: activeSem,
+          studentsCount: g.students?.length || 0,
+          activeSemesters
         };
       });
-  }, [myTeacher]);
+      setGroups(enrichedGroups);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filtered = myGroups.filter((g) => {
+  const filtered = groups.filter((g) => {
     const q = search.trim().toLowerCase();
     return (
       !q ||
-      g.name.toLowerCase().includes(q) ||
-      g.level.toLowerCase().includes(q)
+      g.name.toLowerCase().includes(q)
     );
   });
 
@@ -77,7 +69,7 @@ const Groups = () => {
     <div>
       <PageHeader
         title="Mening guruhlarim"
-        description={`Siz ${myGroups.length} ta guruhga biriktirilgansiz`}
+        description={`Siz ${groups.length} ta guruhga biriktirilgansiz`}
       />
 
       <Card className="mb-4" padded={false}>
@@ -134,7 +126,7 @@ const GroupCard = ({ group, gradient }) => (
       <div className={cn("h-24 bg-gradient-to-br relative", gradient)}>
         <div className="absolute inset-0 dot-pattern opacity-30" />
         <div className="absolute top-4 left-4 px-2.5 py-1 rounded-lg bg-white/20 backdrop-blur-sm text-white text-xs font-semibold">
-          {group.level}
+          Daraja: Umumiy
         </div>
         <div className="absolute -right-4 -bottom-6 w-20 h-20 rounded-full bg-white/10 blur-2xl" />
         <BookOpen className="absolute right-5 top-5 w-8 h-8 text-white/40" />
