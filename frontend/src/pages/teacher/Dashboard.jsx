@@ -102,7 +102,10 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         {loading
           ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
-          : cards.map((c) => <StatCard key={c.key} {...c} />)}
+          : cards.map((c) => {
+              const { key, ...rest } = c;
+              return <StatCard key={key} {...rest} />;
+            })}
       </div>
 
       <Link to="/teacher/semesters" className="group block mb-6">

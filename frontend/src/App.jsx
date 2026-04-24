@@ -5,7 +5,12 @@ import AppRoutes from "./routes/AppRoutes";
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <AuthProvider>
         <AppRoutes />
         <Toaster
@@ -13,8 +18,12 @@ function App() {
           toastOptions={{
             duration: 3000,
             style: {
-              background: "#0F172A", color: "#fff", borderRadius: "12px",
-              padding: "12px 16px", fontSize: "14px", fontWeight: 500,
+              background: "#0F172A",
+              color: "#fff",
+              borderRadius: "12px",
+              padding: "12px 16px",
+              fontSize: "14px",
+              fontWeight: 500,
               boxShadow: "0 10px 40px -12px rgba(15, 23, 42, 0.25)",
             },
             success: { iconTheme: { primary: "#10B981", secondary: "#fff" } },
