@@ -1,0 +1,93 @@
+export const SUBJECTS = [
+  "Matematika","Fizika","Kimyo","Biologiya","Ingliz tili","Rus tili",
+  "Ona tili","Adabiyot","Tarix","Geografiya","Informatika","Iqtisodiyot",
+];
+
+export const mockGroups = [
+  { id: 1, name: "11-A", level: "11-sinf", studentsCount: 24, createdAt: "2025-09-01T08:00:00Z" },
+  { id: 2, name: "11-B", level: "11-sinf", studentsCount: 22, createdAt: "2025-09-01T08:00:00Z" },
+  { id: 3, name: "10-A", level: "10-sinf", studentsCount: 26, createdAt: "2025-09-02T08:00:00Z" },
+  { id: 4, name: "10-B", level: "10-sinf", studentsCount: 25, createdAt: "2025-09-02T08:00:00Z" },
+  { id: 5, name: "9-A",  level: "9-sinf",  studentsCount: 28, createdAt: "2025-09-03T08:00:00Z" },
+  { id: 6, name: "9-B",  level: "9-sinf",  studentsCount: 27, createdAt: "2025-09-03T08:00:00Z" },
+  { id: 7, name: "Informatika Guruh-1", level: "Maxsus", studentsCount: 15, createdAt: "2025-10-01T08:00:00Z" },
+  { id: 8, name: "Informatika Guruh-2", level: "Maxsus", studentsCount: 18, createdAt: "2025-10-01T08:00:00Z" },
+];
+
+export const mockTeachers = [
+  { id: 1, fullName: "Nargiza Saidova",  username: "n.saidova",    email: "saidova@edutest.uz",    phone: "+998 90 123 45 67", subject: "Matematika",  groups: [1,2,3], studentsCount: 72, semestersCount: 4, status: "active",   createdAt: "2025-09-15T10:30:00Z" },
+  { id: 2, fullName: "Oybek Rahimov",    username: "o.rahimov",    email: "rahimov@edutest.uz",    phone: "+998 91 234 56 78", subject: "Fizika",      groups: [1,3,5], studentsCount: 78, semestersCount: 3, status: "active",   createdAt: "2025-09-18T14:20:00Z" },
+  { id: 3, fullName: "Malika Yusupova",  username: "m.yusupova",   email: "yusupova@edutest.uz",   phone: "+998 93 345 67 89", subject: "Ingliz tili", groups: [2,4,6], studentsCount: 74, semestersCount: 5, status: "active",   createdAt: "2025-09-20T09:15:00Z" },
+  { id: 4, fullName: "Sardor Komilov",   username: "s.komilov",    email: "komilov@edutest.uz",    phone: "+998 94 456 78 90", subject: "Informatika", groups: [7,8],   studentsCount: 33, semestersCount: 6, status: "active",   createdAt: "2025-10-01T11:00:00Z" },
+  { id: 5, fullName: "Dilnoza Islamova", username: "d.islamova",   email: "islamova@edutest.uz",   phone: "+998 95 567 89 01", subject: "Kimyo",       groups: [3,4,5], studentsCount: 79, semestersCount: 2, status: "inactive", createdAt: "2025-10-05T13:45:00Z" },
+  { id: 6, fullName: "Jasur Abdullayev", username: "j.abdullayev", email: "abdullayev@edutest.uz", phone: "+998 97 678 90 12", subject: "Tarix",       groups: [1,2],   studentsCount: 46, semestersCount: 3, status: "active",   createdAt: "2025-10-10T16:20:00Z" },
+];
+
+const names = [
+  "Aziz Karimov","Malika Tursunova","Bekzod Alimov","Zarina Usmonova","Javohir Yoqubov",
+  "Nigora Xalilova","Sanjar Ismoilov","Gulnora Rahmonova","Otabek Sharipov","Feruza Akbarova",
+  "Ruslan Xojiyev","Kamola Ergasheva","Akmal Nazarov","Shahnoza Qosimova","Temur Abdurahmonov",
+  "Madina Olimova","Farrux Mirzayev","Sevara Ahmedova","Doston Yusupov","Lola Rustamova",
+];
+const seed = (i) => Math.abs((Math.sin(i * 999) * 10000) % 1);
+
+export const mockStudents = names.map((name, idx) => ({
+  id: idx + 1,
+  fullName: name,
+  username: name.toLowerCase().replace(/\s+/g, "."),
+  email: `${name.toLowerCase().replace(/\s+/g, ".")}@student.uz`,
+  groupId: (idx % 8) + 1,
+  teacherId: (idx % 6) + 1,
+  testsCompleted: Math.floor(seed(idx + 1) * 20) + 5,
+  averageScore: Math.floor(seed(idx + 7) * 35) + 60,
+  status: idx % 11 === 0 ? "inactive" : "active",
+  createdAt: new Date(Date.now() - idx * 86400000 * 3).toISOString(),
+}));
+
+export const mockSemesters = [
+  { id: 1, name: "Algebra asoslari",      subject: "Matematika",  teacherId: 1, groupId: 1, questionCount: 20, attempts: 2, deadline: "2026-05-15T23:59:00Z", status: "active",    createdAt: "2026-04-01T08:00:00Z" },
+  { id: 2, name: "Mexanika",              subject: "Fizika",      teacherId: 2, groupId: 3, questionCount: 25, attempts: 1, deadline: "2026-05-20T23:59:00Z", status: "active",    createdAt: "2026-04-05T08:00:00Z" },
+  { id: 3, name: "Grammar Tenses",        subject: "Ingliz tili", teacherId: 3, groupId: 2, questionCount: 30, attempts: 3, deadline: "2026-04-10T23:59:00Z", status: "completed", createdAt: "2026-03-20T08:00:00Z" },
+  { id: 4, name: "Python asoslari",       subject: "Informatika", teacherId: 4, groupId: 7, questionCount: 15, attempts: 2, deadline: "2026-06-01T23:59:00Z", status: "active",    createdAt: "2026-04-10T08:00:00Z" },
+  { id: 5, name: "Organik kimyo",         subject: "Kimyo",       teacherId: 5, groupId: 4, questionCount: 22, attempts: 2, deadline: "2026-04-20T23:59:00Z", status: "active",    createdAt: "2026-04-02T08:00:00Z" },
+  { id: 6, name: "Ikkinchi jahon urushi", subject: "Tarix",       teacherId: 6, groupId: 2, questionCount: 18, attempts: 1, deadline: "2026-05-30T23:59:00Z", status: "active",    createdAt: "2026-04-12T08:00:00Z" },
+];
+
+export const mockStats = {
+  teachers: 6, students: 248, groups: 8, activeSemesters: 18,
+  testsCompleted: 1247, averageScore: 78.4,
+  teachersChange: 12.5, studentsChange: 8.2, semestersChange: 15.3, scoreChange: 3.1,
+};
+
+export const mockChartData = [
+  { month: "May", tests: 145, students: 180 },
+  { month: "Iyn", tests: 189, students: 195 },
+  { month: "Iyl", tests: 156, students: 200 },
+  { month: "Avg", tests: 98,  students: 210 },
+  { month: "Sen", tests: 267, students: 225 },
+  { month: "Okt", tests: 312, students: 235 },
+  { month: "Noy", tests: 289, students: 240 },
+  { month: "Dek", tests: 345, students: 248 },
+];
+
+export const mockWeekly = [
+  { day: "Dush", tests: 48 },
+  { day: "Sesh", tests: 62 },
+  { day: "Chor", tests: 55 },
+  { day: "Pay",  tests: 71 },
+  { day: "Jum",  tests: 85 },
+  { day: "Shan", tests: 42 },
+  { day: "Yak",  tests: 28 },
+];
+
+export const mockRecentActivity = [
+  { id: 1, type: "teacher_created",    title: "Yangi o'qituvchi qo'shildi",   description: "Jasur Abdullayev — Tarix",      user: "Admin",           timestamp: new Date(Date.now() - 1000*60*15).toISOString() },
+  { id: 2, type: "semester_created",   title: "Semestr boshlandi",            description: "Algebra asoslari — 11-A",       user: "Nargiza Saidova", timestamp: new Date(Date.now() - 1000*60*60*2).toISOString() },
+  { id: 3, type: "test_completed",     title: "Test yakunlandi",              description: "24 o'quvchi testni topshirdi",  user: "Malika Yusupova", timestamp: new Date(Date.now() - 1000*60*60*5).toISOString() },
+  { id: 4, type: "student_joined",     title: "12 yangi o'quvchi qo'shildi",  description: "Informatika Guruh-2",           user: "Sardor Komilov",  timestamp: new Date(Date.now() - 1000*60*60*8).toISOString() },
+  { id: 5, type: "semester_completed", title: "Semestr tugatildi",            description: "Fizika asoslari — 10-B",        user: "Oybek Rahimov",   timestamp: new Date(Date.now() - 1000*60*60*24).toISOString() },
+  { id: 6, type: "teacher_created",    title: "Yangi o'qituvchi qo'shildi",   description: "Dilnoza Islamova — Kimyo",      user: "Admin",           timestamp: new Date(Date.now() - 1000*60*60*36).toISOString() },
+];
+
+// Alias — ba'zi eski komponentlar mockActivity deb import qilishi mumkin
+export const mockActivity = mockRecentActivity;
