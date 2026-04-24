@@ -45,9 +45,11 @@ const Topbar = ({ onMenuClick }) => {
     navigate("/login");
   };
 
-  const settingsPath =
-    user?.role === "TEACHER" ? "/teacher/settings" : "/admin/settings";
-
+const settingsPath =
+  user?.role === "TEACHER" ? "/teacher/settings" :
+  user?.role === "STUDENT" ? "/student/settings" :
+  "/admin/settings";
+  
   return (
     <header className="sticky top-0 z-30 bg-canvas/80 backdrop-blur-xl border-b border-ink-100">
       <div className="h-16 px-4 lg:px-6 flex items-center gap-3">

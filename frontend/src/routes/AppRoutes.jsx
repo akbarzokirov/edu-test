@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
 import Login from "../pages/Login";
-import NotFound from "../pages/NotFound";
+import NotFound from "../pages/NotFound"
 
 import AdminLayout from "../components/layout/AdminLayout";
 import AdminDashboard from "../pages/admin/Dashboard";
@@ -16,6 +16,14 @@ import TeacherStudents from "../pages/teacher/Students";
 import TeacherSemesters from "../pages/teacher/Semesters";
 import TeacherResults from "../pages/teacher/Results";
 import TeacherSettings from "../pages/teacher/Settings";
+
+import StudentLayout from "../components/layout/StudentLayout";
+import StudentDashboard from "../pages/student/Dashboard";
+import StudentSemesters from "../pages/student/Semesters";
+import StudentTakeTest from "../pages/student/TakeTest";
+import StudentResults from "../pages/student/Results";
+import StudentResultDetail from "../pages/student/ResultDetail";
+import StudentSettings from "../pages/student/Settings";
 
 const AppRoutes = () => {
   const { user } = useAuth();
@@ -31,34 +39,21 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Navigate to={homeRoute()} replace />} />
-      <Route
-        path="/login"
-        element={user ? <Navigate to={homeRoute()} replace /> : <Login />}
-      />
+      <Route path="/login" element={user ? <Navigate to={homeRoute()} replace /> : <Login />} />
 
       {/* ADMIN */}
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute allowedRoles={["ADMIN"]}>
-            <AdminLayout />
-          </ProtectedRoute>
-        }
-      >
+      <Route path="/admin" element={
+        <ProtectedRoute allowedRoles={["ADMIN"]}><AdminLayout /></ProtectedRoute>
+      }>
         <Route index element={<AdminDashboard />} />
         <Route path="teachers" element={<AdminTeachers />} />
         <Route path="students" element={<AdminStudents />} />
       </Route>
 
       {/* TEACHER */}
-      <Route
-        path="/teacher"
-        element={
-          <ProtectedRoute allowedRoles={["TEACHER"]}>
-            <TeacherLayout />
-          </ProtectedRoute>
-        }
-      >
+      <Route path="/teacher" element={
+        <ProtectedRoute allowedRoles={["TEACHER"]}><TeacherLayout /></ProtectedRoute>
+      }>
         <Route index element={<TeacherDashboard />} />
         <Route path="groups" element={<TeacherGroups />} />
         <Route path="students" element={<TeacherStudents />} />
@@ -67,22 +62,17 @@ const AppRoutes = () => {
         <Route path="settings" element={<TeacherSettings />} />
       </Route>
 
-      {/* STUDENT — placeholder */}
-      <Route
-        path="/student"
-        element={
-          <ProtectedRoute allowedRoles={["STUDENT"]}>
-            <div className="min-h-screen flex items-center justify-center p-6 text-center">
-              <div>
-                <p className="text-lg font-semibold">Student Panel</p>
-                <p className="text-ink-500 mt-2">
-                  Keyingi bosqichda tayyorlanadi
-                </p>
-              </div>
-            </div>
-          </ProtectedRoute>
-        }
-      />
+      {/* STUDENT */}
+      <Route path="/student" element={
+        <ProtectedRoute allowedRoles={["STUDENT"]}><StudentLayout /></ProtectedRoute>
+      }>
+        <Route index element={<StudentDashboard />} />
+        <Route path="semesters" element={<StudentSemesters />} />
+        <Route path="semesters/:id/take" element={<StudentTakeTest />} />
+        <Route path="results" element={<StudentResults />} />
+        <Route path="results/:id" element={<StudentResultDetail />} />
+        <Route path="settings" element={<StudentSettings />} />
+      </Route>
 
       <Route path="*" element={<NotFound />} />
     </Routes>
