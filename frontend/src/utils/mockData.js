@@ -628,6 +628,232 @@ export const mockTeacherActivity = [
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
   },
 ];
+// ========== STUDENT-SPECIFIC MOCK DATA ==========
 
+export const mockStudentStats = {
+  totalTests: 12,
+  completed: 9,
+  pending: 3,
+  averageScore: 84,
+};
+
+// So'nggi oylardagi ball dinamikasi
+export const mockStudentProgress = [
+  { month: "Sen", score: 72 },
+  { month: "Okt", score: 78 },
+  { month: "Noy", score: 85 },
+  { month: "Dek", score: 81 },
+  { month: "Yan", score: 88 },
+  { month: "Fev", score: 92 },
+];
+
+// Student'ning testlari — barchasi (active/completed/draft holatida)
+export const mockStudentSemesters = [
+  {
+    id: 1, name: "Algebra asoslari", subject: "Matematika", teacher: "Nargiza Saidova",
+    description: "Kvadrat tenglamalar va ko'phadlar",
+    questionCount: 20, attempts: 2, duration: 60,
+    deadline: "2026-05-15T23:59:00Z", status: "active",
+    attemptsUsed: 0, bestScore: null, autoGrade: true,
+  },
+  {
+    id: 2, name: "Trigonometriya", subject: "Matematika", teacher: "Nargiza Saidova",
+    description: "Sinus, kosinus va tangens",
+    questionCount: 25, attempts: 1, duration: 90,
+    deadline: "2026-05-20T23:59:00Z", status: "active",
+    attemptsUsed: 0, bestScore: null, autoGrade: true,
+  },
+  {
+    id: 3, name: "Mexanika", subject: "Fizika", teacher: "Oybek Rahimov",
+    description: "Nyuton qonunlari va harakat",
+    questionCount: 15, attempts: 2, duration: 45,
+    deadline: "2026-04-28T23:59:00Z", status: "active",
+    attemptsUsed: 1, bestScore: 78, autoGrade: true,
+  },
+  {
+    id: 4, name: "Grammar Tenses", subject: "Ingliz tili", teacher: "Malika Yusupova",
+    description: "Past, Present, Future Tenses",
+    questionCount: 30, attempts: 3, duration: 50,
+    deadline: "2026-05-10T23:59:00Z", status: "active",
+    attemptsUsed: 2, bestScore: 85, autoGrade: true,
+  },
+  {
+    id: 5, name: "Geometriya asoslari", subject: "Matematika", teacher: "Nargiza Saidova",
+    description: "Planimetriya",
+    questionCount: 18, attempts: 3, duration: 45,
+    deadline: "2026-04-10T23:59:00Z", status: "completed",
+    attemptsUsed: 3, bestScore: 94, autoGrade: true,
+  },
+  {
+    id: 6, name: "Organik kimyo", subject: "Kimyo", teacher: "Dilnoza Islamova",
+    description: "Uglevodorodlar",
+    questionCount: 22, attempts: 2, duration: 60,
+    deadline: "2026-04-20T23:59:00Z", status: "active",
+    attemptsUsed: 1, bestScore: 72, autoGrade: true,
+  },
+];
+
+// Student'ning natijalari (topshirilgan testlar)
+export const mockStudentResults = [
+  {
+    id: 1, semesterId: 5, semesterName: "Geometriya asoslari", subject: "Matematika", teacher: "Nargiza Saidova",
+    score: 94, correct: 17, total: 18, duration: 32, attemptNumber: 1,
+    submittedAt: "2026-04-09T11:00:00Z",
+  },
+  {
+    id: 2, semesterId: 4, semesterName: "Grammar Tenses", subject: "Ingliz tili", teacher: "Malika Yusupova",
+    score: 85, correct: 25, total: 30, duration: 42, attemptNumber: 2,
+    submittedAt: "2026-04-15T13:30:00Z",
+  },
+  {
+    id: 3, semesterId: 3, semesterName: "Mexanika", subject: "Fizika", teacher: "Oybek Rahimov",
+    score: 78, correct: 11, total: 15, duration: 38, attemptNumber: 1,
+    submittedAt: "2026-04-20T15:00:00Z",
+  },
+  {
+    id: 4, semesterId: 6, semesterName: "Organik kimyo", subject: "Kimyo", teacher: "Dilnoza Islamova",
+    score: 72, correct: 16, total: 22, duration: 52, attemptNumber: 1,
+    submittedAt: "2026-04-18T10:20:00Z",
+  },
+  {
+    id: 5, semesterId: 5, semesterName: "Geometriya asoslari", subject: "Matematika", teacher: "Nargiza Saidova",
+    score: 88, correct: 16, total: 18, duration: 36, attemptNumber: 2,
+    submittedAt: "2026-04-03T14:00:00Z",
+  },
+  {
+    id: 6, semesterId: 4, semesterName: "Grammar Tenses", subject: "Ingliz tili", teacher: "Malika Yusupova",
+    score: 68, correct: 20, total: 30, duration: 48, attemptNumber: 1,
+    submittedAt: "2026-04-01T09:30:00Z",
+  },
+  {
+    id: 7, semesterId: 5, semesterName: "Geometriya asoslari", subject: "Matematika", teacher: "Nargiza Saidova",
+    score: 76, correct: 14, total: 18, duration: 40, attemptNumber: 3,
+    submittedAt: "2026-03-28T16:15:00Z",
+  },
+];
+
+// Demo test savollari (student test topshirganda ko'rinadi)
+export const mockTestQuestions = [
+  {
+    id: 1,
+    text: "Kvadrat tenglama x² - 5x + 6 = 0 ning ildizlari qaysi?",
+    options: [
+      { id: "a", text: "x₁ = 2, x₂ = 3" },
+      { id: "b", text: "x₁ = 1, x₂ = 6" },
+      { id: "c", text: "x₁ = -2, x₂ = -3" },
+      { id: "d", text: "x₁ = 5, x₂ = 6" },
+    ],
+    correctOption: "a",
+    explanation: "Vyeta teoremasi bo'yicha: x₁ + x₂ = 5, x₁ · x₂ = 6 → x₁=2, x₂=3",
+  },
+  {
+    id: 2,
+    text: "(x + 3)² ni yoyib yozing.",
+    options: [
+      { id: "a", text: "x² + 6x + 9" },
+      { id: "b", text: "x² + 9" },
+      { id: "c", text: "x² + 3x + 9" },
+      { id: "d", text: "x² + 6x + 6" },
+    ],
+    correctOption: "a",
+    explanation: "(a + b)² = a² + 2ab + b² formulasi bo'yicha: (x)² + 2·x·3 + 3² = x² + 6x + 9",
+  },
+  {
+    id: 3,
+    text: "Agar f(x) = 2x + 3 bo'lsa, f(5) nimaga teng?",
+    options: [
+      { id: "a", text: "10" },
+      { id: "b", text: "11" },
+      { id: "c", text: "13" },
+      { id: "d", text: "8" },
+    ],
+    correctOption: "c",
+    explanation: "f(5) = 2·5 + 3 = 10 + 3 = 13",
+  },
+  {
+    id: 4,
+    text: "Diskriminant nima?",
+    options: [
+      { id: "a", text: "b² - 4ac" },
+      { id: "b", text: "b² + 4ac" },
+      { id: "c", text: "2a" },
+      { id: "d", text: "a² - 4bc" },
+    ],
+    correctOption: "a",
+    explanation: "Kvadrat tenglamaning diskriminanti D = b² - 4ac formulasi bilan topiladi.",
+  },
+  {
+    id: 5,
+    text: "log₁₀(100) ning qiymati qanday?",
+    options: [
+      { id: "a", text: "1" },
+      { id: "b", text: "2" },
+      { id: "c", text: "10" },
+      { id: "d", text: "100" },
+    ],
+    correctOption: "b",
+    explanation: "10² = 100, shuning uchun log₁₀(100) = 2",
+  },
+  {
+    id: 6,
+    text: "Qaysi son irratsional?",
+    options: [
+      { id: "a", text: "0.5" },
+      { id: "b", text: "√2" },
+      { id: "c", text: "3/4" },
+      { id: "d", text: "-5" },
+    ],
+    correctOption: "b",
+    explanation: "√2 = 1.41421356... cheksiz va davriy bo'lmagan son — irratsional.",
+  },
+  {
+    id: 7,
+    text: "Agar a = 3, b = 4 bo'lsa, a² + b² nimaga teng?",
+    options: [
+      { id: "a", text: "14" },
+      { id: "b", text: "25" },
+      { id: "c", text: "49" },
+      { id: "d", text: "7" },
+    ],
+    correctOption: "b",
+    explanation: "a² + b² = 3² + 4² = 9 + 16 = 25",
+  },
+  {
+    id: 8,
+    text: "Sin(90°) nimaga teng?",
+    options: [
+      { id: "a", text: "0" },
+      { id: "b", text: "0.5" },
+      { id: "c", text: "1" },
+      { id: "d", text: "√2/2" },
+    ],
+    correctOption: "c",
+    explanation: "Sin(90°) = 1 (trigonometrik aylanadagi maksimal qiymat)",
+  },
+  {
+    id: 9,
+    text: "2x + 5 = 15 tenglamaning yechimi qaysi?",
+    options: [
+      { id: "a", text: "x = 3" },
+      { id: "b", text: "x = 5" },
+      { id: "c", text: "x = 10" },
+      { id: "d", text: "x = 7.5" },
+    ],
+    correctOption: "b",
+    explanation: "2x = 15 - 5 = 10, demak x = 5",
+  },
+  {
+    id: 10,
+    text: "Uchburchakning ichki burchaklari yig'indisi necha darajaga teng?",
+    options: [
+      { id: "a", text: "90°" },
+      { id: "b", text: "180°" },
+      { id: "c", text: "270°" },
+      { id: "d", text: "360°" },
+    ],
+    correctOption: "b",
+    explanation: "Istalgan uchburchakning ichki burchaklari yig'indisi 180° ga teng.",
+  },
+];
 // Alias — ba'zi eski komponentlar mockActivity deb import qilishi mumkin
 export const mockActivity = mockRecentActivity;
