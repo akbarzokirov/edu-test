@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
 import {
-  Search, Users, Award, CheckCircle2, Plus, Edit2, Trash2,
-  User as UserIcon, Mail, Lock, AlertCircle,
+  Search,
+  Users,
+  Award,
+  CheckCircle2,
+  Plus,
+  Edit2,
+  Trash2,
+  User as UserIcon,
+  Mail,
+  Lock,
+  AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import PageHeader from "../../components/layout/PageHeader";
 import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
@@ -26,7 +34,7 @@ const Students = () => {
 
   // Modal holatlari
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState(null); // null = yangi, object = tahrirlash
+  const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -34,7 +42,8 @@ const Students = () => {
     const params = {};
     if (search) params.search = search;
     if (groupFilter !== "all") params.groupId = groupFilter;
-    teacherApi.students(params)
+    teacherApi
+      .students(params)
       .then(({ data }) => setStudents(data.data || []))
       .catch(() => setStudents([]))
       .finally(() => setLoading(false));
@@ -50,6 +59,15 @@ const Students = () => {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, groupFilter]);
+
+  const handleAddClick = () => {
+    if (groups.length === 0) {
+      toast.error("Avval admin sizga guruh biriktirishi kerak");
+      return;
+    }
+    setEditing(null);
+    setFormOpen(true);
+  };
 
   const handleSave = async (payload) => {
     setSaving(true);
@@ -84,24 +102,32 @@ const Students = () => {
 
   return (
     <div>
-      <PageHeader
-        title="Mening o'quvchilarim"
-        description="O'z guruhlaringizdagi talabalarni boshqaring"
-        actions={
-          groups.length > 0 && (
-            <Button variant="brand" icon={Plus} onClick={() => { setEditing(null); setFormOpen(true); }}>
-              Yangi talaba
-            </Button>
-          )
-        }
-      />
+      {/* Custom header — sarlavha + tugma yonma-yon */}
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-ink-900 tracking-tight">
+            Mening o'quvchilarim
+          </h1>
+          <p className="mt-1 text-sm text-ink-500">
+            O'z guruhlaringizdagi talabalarni boshqaring
+          </p>
+        </div>
+        <button
+          onClick={handleAddClick}
+          className="inline-flex items-center gap-2 px-4 h-10 rounded-lg bg-brand-600 text-white text-sm font-semibold shadow-soft transition-colors flex-shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">Yangi talaba</span>
+        </button>
+      </div>
 
       {groups.length === 0 && (
         <Card className="mb-4 bg-warning-50 border-warning-100">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-warning-600 flex-shrink-0 mt-0.5" />
             <div className="text-sm text-warning-700">
-              Sizga hali guruh biriktirilmagan. Talaba qo'shish uchun avval admin sizga guruh biriktirishi kerak.
+              Sizga hali guruh biriktirilmagan. Talaba qo'shish uchun avval
+              admin sizga guruh biriktirishi kerak.
             </div>
           </div>
         </Card>
@@ -118,9 +144,17 @@ const Students = () => {
               className="input-base pl-10"
             />
           </div>
-          <Select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)} className="sm:w-48">
+          <Select
+            value={groupFilter}
+            onChange={(e) => setGroupFilter(e.target.value)}
+            className="sm:w-48"
+          >
             <option value="all">Barcha guruhlar</option>
-            {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
           </Select>
         </div>
       </Card>
@@ -138,7 +172,7 @@ const Students = () => {
           }
           action={
             groups.length > 0 && (
-              <Button variant="brand" icon={Plus} onClick={() => { setEditing(null); setFormOpen(true); }}>
+              <Button variant="brand" icon={Plus} onClick={handleAddClick}>
                 Yangi talaba qo'shish
               </Button>
             )
@@ -150,11 +184,21 @@ const Students = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-ink-100">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-500 uppercase">O'quvchi</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-500 uppercase">Guruh</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-500 uppercase">Testlar</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-500 uppercase">O'rtacha</th>
-                  <th className="text-right px-5 py-3 text-xs font-semibold text-ink-500 uppercase">Amallar</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-500 uppercase">
+                    O'quvchi
+                  </th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-500 uppercase">
+                    Guruh
+                  </th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-500 uppercase">
+                    Testlar
+                  </th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-500 uppercase">
+                    O'rtacha
+                  </th>
+                  <th className="text-right px-5 py-3 text-xs font-semibold text-ink-500 uppercase">
+                    Amallar
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink-100">
@@ -164,7 +208,9 @@ const Students = () => {
                       <div className="flex items-center gap-3">
                         <Avatar name={s.fullName} size="sm" />
                         <div>
-                          <div className="text-sm font-semibold text-ink-900">{s.fullName}</div>
+                          <div className="text-sm font-semibold text-ink-900">
+                            {s.fullName}
+                          </div>
                           <div className="text-xs text-ink-500">{s.email}</div>
                         </div>
                       </div>
@@ -174,18 +220,24 @@ const Students = () => {
                     </td>
                     <td className="px-5 py-3">
                       <span className="inline-flex items-center gap-1 text-sm text-ink-700">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-success-600" /> {s.testsCompleted}
+                        <CheckCircle2 className="w-3.5 h-3.5 text-success-600" />{" "}
+                        {s.testsCompleted}
                       </span>
                     </td>
                     <td className="px-5 py-3">
                       {s.averageScore != null ? (
-                        <span className={cn(
-                          "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold",
-                          s.averageScore >= 85 ? "bg-success-50 text-success-700" :
-                          s.averageScore >= 70 ? "bg-brand-50 text-brand-700" :
-                          s.averageScore >= 50 ? "bg-warning-50 text-warning-700" :
-                          "bg-danger-50 text-danger-700"
-                        )}>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold",
+                            s.averageScore >= 85
+                              ? "bg-success-50 text-success-700"
+                              : s.averageScore >= 70
+                                ? "bg-brand-50 text-brand-700"
+                                : s.averageScore >= 50
+                                  ? "bg-warning-50 text-warning-700"
+                                  : "bg-danger-50 text-danger-700",
+                          )}
+                        >
                           <Award className="w-3 h-3" /> {s.averageScore}%
                         </span>
                       ) : (
@@ -195,7 +247,10 @@ const Students = () => {
                     <td className="px-5 py-3 text-right">
                       <div className="flex justify-end gap-1">
                         <button
-                          onClick={() => { setEditing(s); setFormOpen(true); }}
+                          onClick={() => {
+                            setEditing(s);
+                            setFormOpen(true);
+                          }}
                           title="Tahrirlash"
                           className="p-1.5 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-900"
                         >
@@ -218,25 +273,30 @@ const Students = () => {
         </Card>
       )}
 
-      {/* Yaratish/tahrirlash modal */}
       <StudentFormModal
         open={formOpen}
-        onClose={() => { setFormOpen(false); setEditing(null); }}
+        onClose={() => {
+          setFormOpen(false);
+          setEditing(null);
+        }}
         onSave={handleSave}
         student={editing}
         groups={groups}
         loading={saving}
       />
 
-      {/* O'chirish tasdiqlash */}
       <Modal
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         size="sm"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setDeleteTarget(null)}>Bekor qilish</Button>
-            <Button variant="danger" icon={Trash2} onClick={handleDelete}>O'chirish</Button>
+            <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
+              Bekor qilish
+            </Button>
+            <Button variant="danger" icon={Trash2} onClick={handleDelete}>
+              O'chirish
+            </Button>
           </>
         }
       >
@@ -247,7 +307,8 @@ const Students = () => {
           <div>
             <h3 className="font-semibold text-ink-900">Talabani o'chirish</h3>
             <p className="mt-1 text-sm text-ink-600">
-              <strong>{deleteTarget?.fullName}</strong>ni o'chirmoqchimisiz? Barcha natijalar ham o'chadi.
+              <strong>{deleteTarget?.fullName}</strong>ni o'chirmoqchimisiz?
+              Barcha natijalar ham o'chadi.
             </p>
           </div>
         </div>
@@ -256,8 +317,14 @@ const Students = () => {
   );
 };
 
-// ============ Yaratish/Tahrirlash formasi ============
-const StudentFormModal = ({ open, onClose, onSave, student, groups, loading }) => {
+const StudentFormModal = ({
+  open,
+  onClose,
+  onSave,
+  student,
+  groups,
+  loading,
+}) => {
   const isEdit = !!student;
   const [form, setForm] = useState({
     fullName: "",
@@ -273,7 +340,7 @@ const StudentFormModal = ({ open, onClose, onSave, student, groups, loading }) =
       setForm({
         fullName: student.fullName || "",
         email: student.email || "",
-        password: "", // edit'da bo'sh — faqat o'zgartirish kerak bo'lsa to'ldiriladi
+        password: "",
         groupId: student.groupId || "",
       });
     } else {
@@ -296,16 +363,15 @@ const StudentFormModal = ({ open, onClose, onSave, student, groups, loading }) =
     const e = {};
     if (!form.fullName.trim()) e.fullName = "Ism-familiya kiriting";
     if (!form.email.trim()) e.email = "Email kiriting";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Email formati noto'g'ri";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+      e.email = "Email formati noto'g'ri";
     if (!form.groupId) e.groupId = "Guruhni tanlang";
-
-    // Parol: yaratishda shart, tahrirlashda ixtiyoriy
     if (!isEdit) {
-      if (!form.password || form.password.length < 6) e.password = "Parol kamida 6 ta belgi bo'lsin";
+      if (!form.password || form.password.length < 6)
+        e.password = "Parol kamida 6 ta belgi bo'lsin";
     } else if (form.password && form.password.length < 6) {
       e.password = "Parol kamida 6 ta belgi bo'lsin";
     }
-
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -317,7 +383,6 @@ const StudentFormModal = ({ open, onClose, onSave, student, groups, loading }) =
       email: form.email.trim(),
       groupId: parseInt(form.groupId),
     };
-    // Parol faqat to'ldirilgan bo'lsa yuboriladi
     if (form.password) payload.password = form.password;
     onSave(payload);
   };
@@ -328,10 +393,16 @@ const StudentFormModal = ({ open, onClose, onSave, student, groups, loading }) =
       onClose={onClose}
       size="md"
       title={isEdit ? "Talabani tahrirlash" : "Yangi talaba qo'shish"}
-      description={isEdit ? "Ma'lumotlarni yangilang" : "O'z guruhingizga yangi talaba qo'shing"}
+      description={
+        isEdit
+          ? "Ma'lumotlarni yangilang"
+          : "O'z guruhingizga yangi talaba qo'shing"
+      }
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={loading}>Bekor qilish</Button>
+          <Button variant="secondary" onClick={onClose} disabled={loading}>
+            Bekor qilish
+          </Button>
           <Button variant="brand" onClick={handleSubmit} loading={loading}>
             {isEdit ? "Saqlash" : "Yaratish"}
           </Button>
@@ -363,17 +434,25 @@ const StudentFormModal = ({ open, onClose, onSave, student, groups, loading }) =
           value={form.password}
           onChange={(e) => update("password", e.target.value)}
           error={errors.password}
-          placeholder={isEdit ? "Bo'sh qoldiring — o'zgarmaydi" : "Kamida 6 ta belgi"}
+          placeholder={
+            isEdit ? "Bo'sh qoldiring — o'zgarmaydi" : "Kamida 6 ta belgi"
+          }
         />
         <div>
-          <label className="block text-sm font-medium text-ink-700 mb-1.5">Guruh *</label>
+          <label className="block text-sm font-medium text-ink-700 mb-1.5">
+            Guruh *
+          </label>
           <Select
             value={form.groupId}
             onChange={(e) => update("groupId", e.target.value)}
             className={errors.groupId ? "border-danger-500" : ""}
           >
             <option value="">Tanlang</option>
-            {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
           </Select>
           {errors.groupId && (
             <p className="mt-1 text-xs text-danger-600 flex items-center gap-1">

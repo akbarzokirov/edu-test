@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
 import {
-  Plus, Search, FileText, Edit2, Trash2, Sparkles,
-  Clock, Users, AlertCircle,
+  Plus,
+  Search,
+  FileText,
+  Edit2,
+  Trash2,
+  Sparkles,
+  Clock,
+  Users,
+  AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import PageHeader from "../../components/layout/PageHeader";
 import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
@@ -14,7 +20,7 @@ import Modal from "../../components/ui/Modal";
 import { SkeletonCard } from "../../components/ui/Skeleton";
 import SemesterFormModal from "./SemesterFormModal";
 import { teacherApi } from "../../api/teacherApi";
-import { formatDate, cn } from "../../utils/helpers";
+import { formatDate } from "../../utils/helpers";
 
 const Semesters = () => {
   const [items, setItems] = useState([]);
@@ -28,7 +34,8 @@ const Semesters = () => {
   const [deleteId, setDeleteId] = useState(null);
 
   const load = () => {
-    teacherApi.listSemesters()
+    teacherApi
+      .listSemesters()
       .then(({ data }) => setItems(data.data || []))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
@@ -41,10 +48,22 @@ const Semesters = () => {
 
   const filtered = items.filter((s) => {
     const q = search.trim().toLowerCase();
-    const mq = !q || s.name.toLowerCase().includes(q) || (s.subject || "").toLowerCase().includes(q);
+    const mq =
+      !q ||
+      s.name.toLowerCase().includes(q) ||
+      (s.subject || "").toLowerCase().includes(q);
     const mf = filter === "all" || s.status === filter;
     return mq && mf;
   });
+
+  const handleAddClick = () => {
+    if (groups.length === 0) {
+      toast.error("Avval admin sizga guruh biriktirishi kerak");
+      return;
+    }
+    setEditing(null);
+    setModalOpen(true);
+  };
 
   const handleSave = async (data) => {
     setSaving(true);
@@ -78,15 +97,36 @@ const Semesters = () => {
 
   return (
     <div>
-      <PageHeader
-        title="Mening testlarim"
-        description="Yangi AI testlar yarating va ularni boshqaring"
-        actions={
-          <Button variant="brand" icon={Plus} onClick={() => { setEditing(null); setModalOpen(true); }}>
-            Yangi test
-          </Button>
-        }
-      />
+      {/* Sarlavha + Yangi test tugmasi yonma-yon */}
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-ink-900 tracking-tight">
+            Mening testlarim
+          </h1>
+          <p className="mt-1 text-sm text-ink-500">
+            Yangi AI testlar yarating va ularni boshqaring
+          </p>
+        </div>
+        <button
+          onClick={handleAddClick}
+          className="inline-flex items-center gap-2 px-4 h-10 rounded-lg bg-brand-600 text-white text-sm font-semibold shadow-soft transition-colors flex-shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">Yangi test</span>
+        </button>
+      </div>
+
+      {groups.length === 0 && (
+        <Card className="mb-4 bg-warning-50 border-warning-100">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-warning-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-warning-700">
+              Sizga hali guruh biriktirilmagan. Test yaratish uchun avval admin
+              sizga guruh biriktirishi kerak.
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Card className="mb-4" padded={false}>
         <div className="p-4 flex flex-col sm:flex-row gap-3">
@@ -99,7 +139,11 @@ const Semesters = () => {
               className="input-base pl-10"
             />
           </div>
-          <Select value={filter} onChange={(e) => setFilter(e.target.value)} className="sm:w-48">
+          <Select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="sm:w-48"
+          >
             <option value="all">Barcha holatlar</option>
             <option value="active">Faol</option>
             <option value="draft">Qoralama</option>
@@ -109,15 +153,21 @@ const Semesters = () => {
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+          {Array.from({ length: 3 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={FileText}
           title="Testlar yo'q"
-          description={search || filter !== "all" ? "Filtrni o'zgartirib ko'ring" : "Yangi test yarating"}
+          description={
+            search || filter !== "all"
+              ? "Filtrni o'zgartirib ko'ring"
+              : "Yangi test yarating"
+          }
           action={
-            <Button variant="brand" icon={Plus} onClick={() => { setEditing(null); setModalOpen(true); }}>
+            <Button variant="brand" icon={Plus} onClick={handleAddClick}>
               Yangi test
             </Button>
           }
@@ -125,7 +175,11 @@ const Semesters = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((s) => (
-            <Card key={s.id} className="hover:shadow-pop hover:border-ink-300 transition-all flex flex-col" padded={false}>
+            <Card
+              key={s.id}
+              className="hover:shadow-pop hover:border-ink-300 transition-all flex flex-col"
+              padded={false}
+            >
               <div className="p-5 flex-1">
                 <div className="flex items-start justify-between mb-3">
                   <Badge
@@ -135,29 +189,56 @@ const Semesters = () => {
                     {s.status === "active" ? "Faol" : "Qoralama"}
                   </Badge>
                   <div className="flex gap-1">
-                    <button onClick={() => { setEditing(s); setModalOpen(true); }} className="p-1.5 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-900">
+                    <button
+                      onClick={() => {
+                        setEditing(s);
+                        setModalOpen(true);
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-ink-100 text-ink-500 hover:text-ink-900"
+                    >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={() => setDeleteId(s.id)} className="p-1.5 rounded-lg hover:bg-danger-50 text-ink-500 hover:text-danger-600">
+                    <button
+                      onClick={() => setDeleteId(s.id)}
+                      className="p-1.5 rounded-lg hover:bg-danger-50 text-ink-500 hover:text-danger-600"
+                    >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
-                <h3 className="font-semibold text-ink-900 leading-tight line-clamp-2">{s.name}</h3>
-                <div className="mt-1 text-sm text-ink-500">{s.subject || "—"} · {s.groupName}</div>
+                <h3 className="font-semibold text-ink-900 leading-tight line-clamp-2">
+                  {s.name}
+                </h3>
+                <div className="mt-1 text-sm text-ink-500">
+                  {s.subject || "—"} · {s.groupName}
+                </div>
 
                 <div className="mt-4 pt-4 border-t border-ink-100 space-y-2">
-                  <InfoRow icon={Sparkles} label={`${s.questionCount} savol · AI`} />
+                  <InfoRow
+                    icon={Sparkles}
+                    label={`${s.questionCount} savol · AI`}
+                  />
                   <InfoRow icon={Clock} label={`${s.duration} daq`} />
-                  <InfoRow icon={Users} label={`${s.submitted}/${s.total} topshirdi`} />
-                  <InfoRow icon={AlertCircle} label={s.deadline ? formatDate(s.deadline) : "—"} />
+                  <InfoRow
+                    icon={Users}
+                    label={`${s.submitted}/${s.total} topshirdi`}
+                  />
+                  <InfoRow
+                    icon={AlertCircle}
+                    label={s.deadline ? formatDate(s.deadline) : "—"}
+                  />
                 </div>
               </div>
               <div className="p-5 pt-0">
                 <div className="p-3 rounded-xl bg-brand-50 flex items-center justify-between">
-                  <span className="text-xs font-medium text-ink-700">Topshirish</span>
+                  <span className="text-xs font-medium text-ink-700">
+                    Topshirish
+                  </span>
                   <span className="text-sm font-bold text-ink-900">
-                    {s.total > 0 ? Math.round((s.submitted / s.total) * 100) : 0}%
+                    {s.total > 0
+                      ? Math.round((s.submitted / s.total) * 100)
+                      : 0}
+                    %
                   </span>
                 </div>
               </div>
@@ -181,8 +262,12 @@ const Semesters = () => {
         size="sm"
         footer={
           <>
-            <Button variant="secondary" onClick={() => setDeleteId(null)}>Bekor qilish</Button>
-            <Button variant="danger" icon={Trash2} onClick={handleDelete}>O'chirish</Button>
+            <Button variant="secondary" onClick={() => setDeleteId(null)}>
+              Bekor qilish
+            </Button>
+            <Button variant="danger" icon={Trash2} onClick={handleDelete}>
+              O'chirish
+            </Button>
           </>
         }
       >
