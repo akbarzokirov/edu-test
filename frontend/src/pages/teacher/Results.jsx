@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import {
-  Search, Award, Clock, CheckCircle2, BarChart3,
+  Search, Award, Clock, CheckCircle2, BarChart3, Download, FileText,
 } from "lucide-react";
-import PageHeader from "../../components/layout/PageHeader";
+import toast from "react-hot-toast";
 import Card from "../../components/ui/Card";
 import Badge from "../../components/ui/Badge";
 import Select from "../../components/ui/Select";
@@ -18,6 +18,13 @@ const getScoreClass = (s) =>
   s >= 50 ? "bg-warning-50 text-warning-700" :
   "bg-danger-50 text-danger-700";
 
+const formatFileSize = (bytes) => {
+  if (!bytes) return "—";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+};
+
 const Results = () => {
   const [results, setResults] = useState([]);
   const [semesters, setSemesters] = useState([]);
@@ -25,6 +32,7 @@ const Results = () => {
   const [search, setSearch] = useState("");
   const [semesterFilter, setSemesterFilter] = useState("all");
   const [scoreFilter, setScoreFilter] = useState("all");
+  const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
     teacherApi.listSemesters().then(({ data }) => setSemesters(data.data || []));
@@ -45,6 +53,32 @@ const Results = () => {
     return () => clearTimeout(t);
   }, [search, semesterFilter, scoreFilter]);
 
+  // ⭐ Faylni download qilish
+  const handleDownload = async (attemptId, fileName) => {
+    setDownloadingId(attemptId);
+    try {
+      const response = await teacherApi.downloadAttemptFile(attemptId);
+      // Blob → URL → download
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"] || "application/octet-stream",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName || "attempt-file";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Fayl yuklandi");
+    } catch (err) {
+      toast.error("Faylni yuklashda xatolik");
+      console.error(err);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const stats = {
     total: results.length,
     avgScore: results.length ? Math.round(results.reduce((a, r) => a + r.score, 0) / results.length) : 0,
@@ -54,7 +88,12 @@ const Results = () => {
 
   return (
     <div>
-      <PageHeader title="Natijalar" description="O'quvchilaringizning barcha test natijalari" />
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-ink-900 tracking-tight">Natijalar</h1>
+        <p className="mt-1 text-sm text-ink-500">
+          O'quvchilaringizning barcha test natijalari va yuklagan fayllari
+        </p>
+      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <MiniStat icon={CheckCircle2} label="Jami" value={stats.total} color="bg-brand-50 text-brand-600" />
@@ -102,6 +141,7 @@ const Results = () => {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-ink-500 uppercase">Test</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-ink-500 uppercase">Ball</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-ink-500 uppercase hidden md:table-cell">Vaqt</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-ink-500 uppercase">Yuklangan fayl</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-ink-500 uppercase hidden lg:table-cell">Topshirildi</th>
                 </tr>
               </thead>
@@ -134,6 +174,32 @@ const Results = () => {
                       <span className="inline-flex items-center gap-1 text-xs text-ink-700">
                         <Clock className="w-3 h-3" /> {r.duration} daq
                       </span>
+                    </td>
+                    {/* ⭐ Yuklangan fayl */}
+                    <td className="px-5 py-3">
+                      {r.hasFile ? (
+                        <button
+                          onClick={() => handleDownload(r.id, r.fileName)}
+                          disabled={downloadingId === r.id}
+                          className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 transition-colors disabled:opacity-50"
+                          title={`${r.fileName} (${formatFileSize(r.fileSize)}) — yuklash uchun bosing`}
+                        >
+                          <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+                          <div className="text-left max-w-[160px]">
+                            <div className="text-xs font-semibold truncate">{r.fileName}</div>
+                            <div className="text-[10px] text-brand-600/70">
+                              {formatFileSize(r.fileSize)} · yuklash
+                            </div>
+                          </div>
+                          {downloadingId === r.id ? (
+                            <div className="w-3.5 h-3.5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          )}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-ink-400">— fayl yo'q —</span>
+                      )}
                     </td>
                     <td className="px-5 py-3 hidden lg:table-cell text-xs text-ink-500">
                       {formatDateTime(r.submittedAt)}

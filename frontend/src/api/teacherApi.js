@@ -22,4 +22,9 @@ export const teacherApi = {
   // Natijalar
   listResults: (params) => api.get("/teacher/results", { params }),
   getResultDetail: (id) => api.get(`/teacher/results/${id}`),
+
+  // ⭐ O'quvchi yuklagan faylni download qilish
+  // Response — blob bo'lishi uchun responseType: "blob"
+  downloadAttemptFile: (id) =>
+    api.get(`/teacher/results/${id}/download`, { responseType: "blob" }),
 };

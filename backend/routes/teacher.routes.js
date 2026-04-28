@@ -26,5 +26,6 @@ router.delete("/semesters/:id", teacherController.deleteSemester);
 // Natijalar
 router.get("/results", teacherController.getResults);
 router.get("/results/:id", teacherController.getAttemptDetail);
+router.get("/results/:id/download", teacherController.downloadAttemptFile);
 
 module.exports = router;

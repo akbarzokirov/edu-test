@@ -2,6 +2,7 @@
 //  Groq AI servisi
 //  - Fayl matnidan savol yaratadi
 //  - Fayl tili qanday bo'lsa, savollar ham shu tilda
+//  - Matematika/fizika/kimyo savollarida LaTeX formulalarni ishlatadi
 //  - Test natijasini baholaydi va fikr bildiradi
 // ============================================
 
@@ -44,20 +45,12 @@ async function callGroq(messages, options = {}) {
 }
 
 /**
- * Matn tilini aniqlash (oddiy heuristic)
- * - Kirill + uzbek harflari => "uz"
- * - Kirill + russian so'zlari => "ru"  
- * - Lotin => "en" yoki "uz" (teacher promptiga qarab)
- * Agar noaniq bo'lsa Groq'ga qoldiramiz
+ * Matn tilini aniqlash
  */
 function detectLanguageHint(text) {
   const sample = text.slice(0, 2000).toLowerCase();
-
-  // Uzbek belgilari (o', g', sh, ch)
   const uzbekMarkers = /\b(bo'l|so'z|o'qi|yoki|uchun|kerak|haqida|lekin|bo'yicha)\b/i;
-  // Russian belgilari
   const russianMarkers = /[а-яё]/i;
-  // Kirill uzbekcha belgilari
   const kirillUzMarkers = /\b(оʻ|гʻ|ekan|uchun|bolalar)\b/i;
 
   if (russianMarkers.test(sample) && !kirillUzMarkers.test(sample)) {
@@ -66,26 +59,74 @@ function detectLanguageHint(text) {
   if (uzbekMarkers.test(sample)) {
     return "uz";
   }
-  // Default — AI o'zi tilni aniqlab savol yaratadi
   return "auto";
 }
 
 /**
+ * Subject (fan) bo'yicha LaTeX kerakligini aniqlash
+ */
+function isSubjectMath(subject = "", teacherPrompt = "") {
+  const text = (subject + " " + teacherPrompt).toLowerCase();
+  const mathKeywords = [
+    "matematika", "math", "математика",
+    "fizika", "physics", "физика",
+    "kimyo", "chemistry", "химия",
+    "algebra", "geometriya", "geometry", "геометрия",
+    "trigonometriya", "kalkulyus", "calculus",
+    "statistika", "statistics", "статистика",
+    "tenglama", "uravnenie", "equation",
+    "formula", "формула",
+    "diskriminant", "vektor", "vector", "вектор",
+    "logarifm", "integral", "hosila", "derivative",
+    "funksiya", "function", "функция",
+    "matritsa", "matrix", "матрица",
+    "ehtimol", "probability", "вероятность",
+  ];
+  return mathKeywords.some((kw) => text.includes(kw));
+}
+
+/**
  * Fayl matni va teacher prompt'idan AI savollar yaratadi
- * FAYL TILIDA javob beradi.
+ * FAYL TILIDA + zarur bo'lsa LaTeX formula bilan
  */
 async function generateQuestions({
   fileText,
   teacherPrompt = "",
+  subject = "",
   questionCount = 10,
   languageHint = "auto",
 }) {
-  // Matnni qisqartirish (Groq context limit uchun)
   const MAX_CHARS = 14000;
   const clippedText =
     fileText.length > MAX_CHARS
       ? fileText.slice(0, MAX_CHARS) + "\n...(qisqartirildi)"
       : fileText;
+
+  const useLatex = isSubjectMath(subject, teacherPrompt);
+
+  const latexInstructions = useLatex
+    ? `
+🔢 MATEMATIKA / FIZIKA / KIMYO SAVOLLARI UCHUN MAJBURIY:
+- Barcha formulalar, tenglamalar, kasrlar, ildizlar, daraja, indekslarni LaTeX formatda yozing
+- Inline formulalar: $...$ ichida (masalan: $x^2 + 2x + 1 = 0$)
+- Block formulalar: $$...$$ ichida (masalan: $$\\frac{a+b}{c}$$)
+- Misollar:
+  • Kvadrat tenglama: $ax^2 + bx + c = 0$
+  • Kasr: $\\frac{1}{2}$, $\\frac{x+1}{x-1}$
+  • Daraja: $x^2$, $a^{n+1}$, $2^{10}$
+  • Ildiz: $\\sqrt{x}$, $\\sqrt[3]{8}$, $\\sqrt{x^2+1}$
+  • Yig'indi: $\\sum_{i=1}^{n} i$
+  • Integral: $\\int_0^1 x^2 \\, dx$
+  • Logarifm: $\\log_{2}{8}$, $\\ln{x}$
+  • Trigonometriya: $\\sin{x}$, $\\cos{2x}$, $\\tan{\\alpha}$
+  • Yunon harflari: $\\alpha$, $\\beta$, $\\pi$, $\\theta$
+  • Tengsizlik: $x \\geq 0$, $a \\neq b$, $x \\leq 5$
+  • Ko'paytirish: $a \\cdot b$ yoki $a \\times b$
+  • Cheksizlik: $\\infty$
+- Variantlardagi javoblar ham LaTeX bo'lsin (masalan "$x = 3$")
+- Oddiy raqamlar yoki so'zlar uchun LaTeX kerak emas (masalan: "5 ta bola")
+`
+    : "";
 
   const systemPrompt = `Siz tajribali o'qituvchisiz. Sizga darslik yoki mavzu matni beriladi, siz undan test savollarni yaratasiz.
 
@@ -96,6 +137,7 @@ MUHIM QOIDALAR:
 4. Savollar matnga asoslangan bo'lsin — matndan tashqaridagi ma'lumotlardan foydalanmang.
 5. Savollar turli darajada bo'lsin — ba'zi oson, ba'zi o'rta, ba'zi qiyin.
 6. Javobni faqat JSON formatida qaytaring, boshqa hech narsa yozmang.
+${latexInstructions}
 
 JSON formati:
 {
@@ -103,7 +145,7 @@ JSON formati:
   "questions": [
     {
       "id": 1,
-      "text": "Savol matni...",
+      "text": "Savol matni (LaTeX formulalar $...$ ichida)",
       "options": [
         { "id": "a", "text": "Variant A" },
         { "id": "b", "text": "Variant B" },
@@ -111,7 +153,7 @@ JSON formati:
         { "id": "d", "text": "Variant D" }
       ],
       "correctOption": "b",
-      "explanation": "Nima uchun bu to'g'ri"
+      "explanation": "Nima uchun bu to'g'ri (LaTeX bilan)"
     }
   ]
 }`;
@@ -122,9 +164,12 @@ ${clippedText}
 """
 
 ${teacherPrompt ? `O'qituvchi ko'rsatmasi: ${teacherPrompt}\n` : ""}
+${subject ? `Fan: ${subject}\n` : ""}
 Savol soni: ${questionCount}
 
 ${languageHint !== "auto" ? `Til: ${languageHint === "uz" ? "o'zbek" : languageHint === "ru" ? "rus" : "ingliz"}` : "Tilni matnning o'zidan aniqlang va shu tilda javob bering"}
+
+${useLatex ? "DIQQAT: Bu MATEMATIKA/FIZIKA/KIMYO mavzusi — barcha formulalarni LaTeX (\\$...\\$) formatida yozing." : ""}
 
 Faqat JSON qaytaring.`;
 
@@ -140,7 +185,6 @@ Faqat JSON qaytaring.`;
   try {
     parsed = JSON.parse(raw);
   } catch (e) {
-    // Ba'zan AI JSON'ni ```json ```bilan o'raydi
     const cleaned = raw.replace(/```json\s*|\s*```/g, "").trim();
     parsed = JSON.parse(cleaned);
   }
@@ -156,7 +200,6 @@ Faqat JSON qaytaring.`;
     explanation: String(q.explanation || "").trim(),
   }));
 
-  // Validatsiya: har bir savol to'g'ri formatda
   const valid = questions.filter(
     (q) => q.text && q.options.length === 4 && ["a", "b", "c", "d"].includes(q.correctOption)
   );
@@ -168,13 +211,12 @@ Faqat JSON qaytaring.`;
   return {
     detectedLanguage: parsed.detectedLanguage || languageHint,
     questions: valid,
+    hasLatex: useLatex,
   };
 }
 
 /**
  * Talaba javoblarini baholash
- * Har bir savol to'g'riligini key-match orqali aniqlaymiz,
- * umumiy fikrni AI'dan olamiz
  */
 async function gradeAttempt({ questions, answers, language = "uz" }) {
   let correctCount = 0;
@@ -193,7 +235,6 @@ async function gradeAttempt({ questions, answers, language = "uz" }) {
 
   const score = Math.round((correctCount / questions.length) * 100);
 
-  // AI feedback — faqat qisqa summary
   let feedback = "";
   try {
     const langName =
@@ -202,7 +243,7 @@ async function gradeAttempt({ questions, answers, language = "uz" }) {
       (d) => `Savol: ${d.questionText.slice(0, 80)} | Javob: ${d.userAnswer || "yo'q"} | To'g'ri: ${d.correctOption} | ${d.isCorrect ? "✓" : "✗"}`
     ).join("\n");
 
-    const systemMsg = `Siz o'qituvchisiz. Talabaning test natijalarini tahlil qilib, ${langName} tilida qisqa (3-4 jumla) maslahat bering. Quvontiring, kuchli va zaif tomonlarini ayting, qaysi mavzuni takrorlash kerakligini ayting. Faqat matn qaytaring, JSON emas.`;
+    const systemMsg = `Siz o'qituvchisiz. Talabaning test natijalarini tahlil qilib, ${langName} tilida qisqa (3-4 jumla) maslahat bering. Quvontiring, kuchli va zaif tomonlarini ayting, qaysi mavzuni takrorlash kerakligini ayting. Faqat matn qaytaring, JSON emas. Agar matematika bo'lsa, formulalarni LaTeX ($...$) formatida yozing.`;
 
     const userMsg = `Test natijasi: ${correctCount}/${questions.length} to'g'ri (${score}%).
 
@@ -219,7 +260,7 @@ Qisqa maslahat bering (${langName} tilida):`;
       { temperature: 0.6, max_tokens: 500 }
     );
   } catch (e) {
-    feedback = ""; // AI feedback ishlamasa ham score berilsin
+    feedback = "";
   }
 
   return {
@@ -235,4 +276,5 @@ module.exports = {
   generateQuestions,
   gradeAttempt,
   detectLanguageHint,
+  isSubjectMath,
 };

@@ -503,6 +503,9 @@ exports.getResults = async (req, res) => {
         : 0,
       submittedAt: a.submittedAt,
       hasFile: !!a.fileName,
+      fileName: a.fileName,
+      fileSize: a.fileSize,
+      hasLatex: a.hasLatex,
     }));
 
     res.json({ success: true, data });
@@ -543,5 +546,43 @@ exports.getAttemptDetail = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ============================================
+//  ⭐ O'quvchi yuklagan faylni DOWNLOAD qilish
+// ============================================
+exports.downloadAttemptFile = async (req, res) => {
+  try {
+    const attempt = await Attempt.findByPk(req.params.id, {
+      include: [{ model: Semester, as: "semester" }],
+    });
+
+    if (!attempt) {
+      return res.status(404).json({ success: false, message: "Topilmadi" });
+    }
+
+    // O'qituvchi faqat o'z testlaridagi attemptlarni download qila oladi
+    if (attempt.semester?.teacherId !== req.user.id) {
+      return res.status(403).json({ success: false, message: "Ruxsat yo'q" });
+    }
+
+    if (!attempt.fileBuffer || !attempt.fileName) {
+      return res.status(404).json({ success: false, message: "Fayl mavjud emas" });
+    }
+
+    const filename = attempt.fileName;
+    const mimeType = attempt.fileMimeType || "application/octet-stream";
+
+    res.setHeader("Content-Type", mimeType);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(filename)}"`
+    );
+    res.setHeader("Content-Length", attempt.fileBuffer.length);
+    res.send(attempt.fileBuffer);
+  } catch (err) {
+    console.error("[Download] XATO:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };

@@ -180,28 +180,33 @@ exports.startAttempt = async (req, res) => {
 
     // 3) Groq AI orqali savol yaratish
     console.log(`[Attempt] AI ${semester.questionCount} ta savol yaratmoqda...`);
-    const { detectedLanguage, questions } = await generateQuestions({
+    const { detectedLanguage, questions, hasLatex } = await generateQuestions({
       fileText,
       teacherPrompt: semester.aiPrompt || "",
+      subject: semester.subject || "",
       questionCount: semester.questionCount || 10,
       languageHint,
     });
-    console.log(`[Attempt] ${questions.length} ta savol yaratildi (${detectedLanguage})`);
+    console.log(`[Attempt] ${questions.length} ta savol yaratildi (${detectedLanguage}, latex: ${hasLatex})`);
 
-    // 4) Attempt yaratish
+    // 4) Attempt yaratish — fayl buffer ham saqlanadi (download uchun)
     const attempt = await Attempt.create({
       studentId,
       semesterId,
       fileName: req.file.originalname,
-      fileText: fileText.slice(0, 15000), // qisqartirilgan saqlaymiz
+      fileMimeType: req.file.mimetype,
+      fileSize: req.file.size,
+      fileBuffer: req.file.buffer,
+      fileText: fileText.slice(0, 15000),
       fileLanguage: detectedLanguage,
+      hasLatex,
       questions,
       answers: {},
       status: "in_progress",
       startedAt: new Date(),
     });
 
-    // 5) Frontend'ga javob — correctOption'ni YUBORMASLIK kerak (cheating oldini olish)
+    // 5) Frontend'ga javob — correctOption'ni YUBORMASLIK kerak
     const questionsForClient = questions.map((q) => ({
       id: q.id,
       text: q.text,
@@ -215,6 +220,7 @@ exports.startAttempt = async (req, res) => {
         questions: questionsForClient,
         duration: semester.durationMinutes,
         language: detectedLanguage,
+        hasLatex,
         startedAt: attempt.startedAt,
       },
     });

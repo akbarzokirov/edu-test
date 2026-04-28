@@ -11,6 +11,7 @@ import Badge from "../../components/ui/Badge";
 import Modal from "../../components/ui/Modal";
 import { studentApi } from "../../api/studentApi";
 import { cn } from "../../utils/helpers";
+import MathText from "../../components/ui/MathText";
 
 const TakeTest = () => {
   const { id } = useParams();
@@ -356,7 +357,7 @@ const TakeTest = () => {
                     AI Maslahati
                   </div>
                   <p className="text-sm text-ink-700 leading-relaxed whitespace-pre-wrap">
-                    {result.aiFeedback}
+                    <MathText text={result.aiFeedback} />
                   </p>
                 </div>
               </div>
@@ -426,7 +427,9 @@ const TakeTest = () => {
                   <div className="text-xs font-semibold text-ink-500 uppercase tracking-wider">
                     Savol {current + 1}
                   </div>
-                  <h2 className="mt-2 text-lg font-semibold text-ink-900 leading-relaxed">{currentQ.text}</h2>
+                  <h2 className="mt-2 text-lg font-semibold text-ink-900 leading-relaxed">
+                    <MathText text={currentQ.text} />
+                  </h2>
                 </div>
                 <button
                   onClick={() => toggleFlag(currentQ.id)}
@@ -459,7 +462,9 @@ const TakeTest = () => {
                       )}>
                         {letter}
                       </div>
-                      <span className="text-sm text-ink-900 flex-1">{opt.text}</span>
+                      <span className="text-sm text-ink-900 flex-1">
+                        <MathText text={opt.text} />
+                      </span>
                       {selected && <CheckCircle2 className="w-5 h-5 text-brand-600 flex-shrink-0" />}
                     </button>
                   );

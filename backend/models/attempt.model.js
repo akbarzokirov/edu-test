@@ -10,23 +10,38 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
     },
+    // Fayl turi (pdf, docx, txt)
+    fileMimeType: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    // Fayl hajmi (bayt)
+    fileSize: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    // ⭐ Faylning ORIGINAL ma'lumoti (download uchun)
+    fileBuffer: {
+      type: DataTypes.BLOB("long"),
+      allowNull: true,
+    },
     // Fayldan olingan matn (qisqartirilgan)
     fileText: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    // Aniqlangan til (uz, ru, en, auto)
+    // Aniqlangan til
     fileLanguage: {
       type: DataTypes.STRING,
       defaultValue: "auto",
     },
-    // AI yaratgan savollar — JSON massiv
+    // AI yaratgan savollar
     questions: {
       type: DataTypes.JSONB,
       allowNull: false,
       defaultValue: [],
     },
-    // Talaba javoblari — JSON obyekt
+    // Talaba javoblari
     answers: {
       type: DataTypes.JSONB,
       allowNull: false,
@@ -37,32 +52,31 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.FLOAT,
       allowNull: true,
     },
-    // To'g'ri javoblar soni
     correctCount: {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
-    // AI'ning tahliliy fikri
     aiFeedback: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    // Test holati
+    // LaTeX bormi
+    hasLatex: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
     status: {
       type: DataTypes.ENUM("in_progress", "submitted", "graded"),
       defaultValue: "in_progress",
     },
-    // Boshlangan vaqti
     startedAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
-    // Topshirilgan vaqti
     submittedAt: {
       type: DataTypes.DATE,
       allowNull: true,
     },
-    // Tab switch soni (anti-cheat)
     tabSwitchCount: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
